@@ -22,7 +22,7 @@ function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">P</span>
-          <span>Prufodis</span>
+          <span>PRUFODIS - Universidad Central</span>
         </div>
 
         <nav className="nav">
@@ -44,7 +44,7 @@ function App() {
 
             <div className="hero-actions">
               <a className="primary-button" href="#login">
-                Ir al login
+                Iniciar sesión
               </a>
               <a className="secondary-button" href="#features">
                 Ver funcionalidades
@@ -53,12 +53,12 @@ function App() {
 
             <ul className="stats" aria-label="Estadísticas de la plataforma">
               <li>
-                <strong>1.200+</strong>
+                <strong>1k+</strong>
                 <span>alumnos gestionados</span>
               </li>
               <li>
-                <strong>40+</strong>
-                <span>asignaturas online</span>
+                <strong>25+</strong>
+                <span>asignaturas</span>
               </li>
               <li>
                 <strong>98%</strong>
@@ -77,7 +77,7 @@ function App() {
               <div className="card-body">
                 <div className="metric">
                   <span>Promedio general</span>
-                  <strong>8,7</strong>
+                  <strong>6,5</strong>
                 </div>
                 <div className="progress">
                   <div className="progress-bar" />
@@ -89,7 +89,7 @@ function App() {
                   </div>
                   <div>
                     <small>Evaluaciones</small>
-                    <strong>24</strong>
+                    <strong>9</strong>
                   </div>
                 </div>
               </div>
@@ -125,7 +125,7 @@ function App() {
 
         <section id="benefits" className="benefits">
           <div className="benefits-copy">
-            <p className="eyebrow">¿Por qué elegir Prufodis?</p>
+            <p className="eyebrow">¿Por qué elegir este sistema?</p>
             <h2>Una solución clara, eficiente y centrada en el rendimiento escolar.</h2>
           </div>
 
