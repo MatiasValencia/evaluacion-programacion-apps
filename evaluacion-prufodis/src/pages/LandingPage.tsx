@@ -4,13 +4,13 @@ const LandingPage = () => {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">P</span>
-          <span>Prufodis</span>
+          <span>PRUFODIS - Universidad Central</span>
         </div>
 
         <nav className="nav">
           <a href="#features">Funcionalidades</a>
           <a href="#benefits">Ventajas</a>
-          <a href="#login">Login</a>
+          <a href="#login">Iniciar sesión</a>
         </nav>
       </header>
 
@@ -26,7 +26,7 @@ const LandingPage = () => {
 
             <div className="hero-actions">
               <a className="primary-button" href="#login">
-                Ir al login
+                Iniciar sesión
               </a>
               <a className="secondary-button" href="#features">
                 Ver funcionalidades
@@ -35,16 +35,12 @@ const LandingPage = () => {
 
             <ul className="stats" aria-label="Estadísticas de la plataforma">
               <li>
-                <strong>1.200+</strong>
+                <strong>1.000+</strong>
                 <span>alumnos gestionados</span>
               </li>
               <li>
-                <strong>40+</strong>
+                <strong>25+</strong>
                 <span>asignaturas online</span>
-              </li>
-              <li>
-                <strong>98%</strong>
-                <span>satisfacción docente</span>
               </li>
             </ul>
           </div>
@@ -59,7 +55,7 @@ const LandingPage = () => {
               <div className="card-body">
                 <div className="metric">
                   <span>Promedio general</span>
-                  <strong>8,7</strong>
+                  <strong>6,4</strong>
                 </div>
                 <div className="progress">
                   <div className="progress-bar" />
@@ -71,7 +67,7 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <small>Evaluaciones</small>
-                    <strong>24</strong>
+                    <strong>8</strong>
                   </div>
                 </div>
               </div>
@@ -107,7 +103,7 @@ const LandingPage = () => {
 
         <section id="benefits" className="benefits">
           <div className="benefits-copy">
-            <p className="eyebrow">¿Por qué elegir Prufodis?</p>
+            <p className="eyebrow">¿Por qué elegir el Sistema de Gestión de PRUFODIS?</p>
             <h2>Una solución clara, eficiente y centrada en el rendimiento escolar.</h2>
           </div>
 
@@ -131,12 +127,12 @@ const LandingPage = () => {
           <form className="login-form" action="/menu">
             <label>
               Usuario
-              <input type="text" name="usuario" placeholder="admin" />
+              <input type="text" name="usuario" placeholder="Nombre de usuario" />
             </label>
 
             <label>
               Contraseña
-              <input type="password" name="password" placeholder="••••" />
+              <input type="password" name="password" placeholder="••••••••" />
             </label>
 
             <button type="submit">Entrar</button>
