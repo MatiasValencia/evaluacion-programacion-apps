@@ -153,7 +153,7 @@ function App() {
                 type="text"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="admin"
+                placeholder="Nombre de usuario"
               />
             </label>
 
@@ -163,7 +163,7 @@ function App() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="••••"
+                placeholder="Contraseña"
               />
             </label>
 
