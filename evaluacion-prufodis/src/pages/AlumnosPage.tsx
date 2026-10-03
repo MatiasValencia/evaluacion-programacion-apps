@@ -93,7 +93,7 @@ const AlumnosPage = ({ students, setStudents, onLogout }: AlumnosPageProps) => {
   return (
     <div className="dashboard-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand">Prufodis</div>
+        <div className="sidebar-brand">PRUFODIS Ucentral</div>
         <nav className="sidebar-nav" aria-label="Navegación principal">
           {menuItems.map(({ to, label }) => (
             <NavLink
