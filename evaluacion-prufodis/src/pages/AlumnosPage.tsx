@@ -66,6 +66,21 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
   const saveStudent = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
+    const existingStudents = students.filter((student) => student.id !== editingId)
+    const duplicatedRut = existingStudents.some(
+      (student) => student.rut.toUpperCase() === form.rut.toUpperCase(),
+    )
+    const duplicatedPhone = existingStudents.some((student) => student.telefono === form.telefono)
+
+    if (duplicatedRut || duplicatedPhone) {
+      const duplicateMessages = [
+        duplicatedRut ? 'RUT duplicado.' : '',
+        duplicatedPhone ? 'Número de teléfono duplicado.' : '',
+      ].filter(Boolean)
+      window.alert(duplicateMessages.join('\n'))
+      return
+    }
+
     if (editingId === null) {
       setStudents((currentStudents) => [
         ...currentStudents,
@@ -164,7 +179,10 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
                 <input
                   autoComplete="off"
                   name="rut"
+                  pattern="[0-9]{7,8}-[0-9K]"
                   required
+                  title="Ingresa un RUT con 7 u 8 dígitos, guión y dígito verificador (0-9 o K)."
+                  maxLength={10}
                   value={form.rut}
                   onChange={(event) => updateField('rut', event.target.value)}
                 />
@@ -184,7 +202,10 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
                   autoComplete="tel"
                   name="telefono"
                   type="tel"
+                  pattern="[0-9]{9}"
                   required
+                  title="Ingresa un teléfono de 9 dígitos."
+                  maxLength={9}
                   value={form.telefono}
                   onChange={(event) => updateField('telefono', event.target.value)}
                 />
