@@ -1,5 +1,9 @@
 import { NavLink } from 'react-router-dom'
 
+type MenuPageProps = {
+  onLogout: () => void
+}
+
 const menuItems = [
   { to: '/menu/alumnos', label: 'Alumnos' },
   { to: '/menu/asignaturas', label: 'Asignaturas' },
@@ -7,7 +11,7 @@ const menuItems = [
   { to: '/menu/evaluaciones', label: 'Evaluaciones' },
 ]
 
-const MenuPage = () => {
+const MenuPage = ({ onLogout }: MenuPageProps) => {
   return (
     <div className="dashboard-shell">
       <aside className="sidebar">
@@ -26,11 +30,14 @@ const MenuPage = () => {
       </aside>
 
       <main className="dashboard-content">
-        <header className="dashboard-header">
+        <header className="dashboard-header students-header">
           <div>
             <p className="eyebrow">Panel principal</p>
             <h1>Dashboard</h1>
           </div>
+          <button className="secondary-button" onClick={onLogout}>
+            Cerrar sesión
+          </button>
         </header>
 
         <section className="dashboard-summary">

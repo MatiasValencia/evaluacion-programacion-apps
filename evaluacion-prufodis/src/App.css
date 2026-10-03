@@ -485,6 +485,11 @@
   gap: 20px;
 }
 
+.dashboard-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .students-header .eyebrow {
   margin-bottom: 12px;
 }
@@ -732,8 +737,14 @@
   }
 
   .students-list-heading .primary-button,
-  .students-back-button {
+  .students-back-button,
+  .dashboard-header-actions,
+  .dashboard-header-actions .secondary-button {
     width: 100%;
+  }
+
+  .dashboard-header-actions {
+    flex-direction: column;
   }
 
   .student-actions,
