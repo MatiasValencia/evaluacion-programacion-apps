@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import './App.css'
 import LandingPage from './pages/LandingPage'
 import MenuPage from './pages/MenuPage'
@@ -10,19 +10,34 @@ import EvaluacionesPage from './pages/EvaluacionesPage'
 
 function App() {
   const [students, setStudents] = useState<Student[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/menu" element={<MenuPage />} />
         <Route
-          path="/menu/alumnos"
-          element={<AlumnosPage students={students} setStudents={setStudents} />}
+          path="/"
+          element={<LandingPage onLogin={() => setIsAuthenticated(true)} />}
         />
-        <Route path="/menu/asignaturas" element={<AsignaturasPage />} />
-        <Route path="/menu/asistencia" element={<AsistenciaPage />} />
-        <Route path="/menu/evaluaciones" element={<EvaluacionesPage />} />
+        <Route
+          path="/menu"
+          element={isAuthenticated ? <Outlet /> : <Navigate to="/" replace />}
+        >
+          <Route path="" element={<MenuPage onLogout={() => setIsAuthenticated(false)} />} />
+          <Route
+            path="alumnos"
+            element={
+              <AlumnosPage
+                students={students}
+                setStudents={setStudents}
+                onLogout={() => setIsAuthenticated(false)}
+              />
+            }
+          />
+          <Route path="asignaturas" element={<AsignaturasPage />} />
+          <Route path="asistencia" element={<AsistenciaPage />} />
+          <Route path="evaluaciones" element={<EvaluacionesPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -1,4 +1,19 @@
-const LandingPage = () => {
+import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+type LandingPageProps = {
+  onLogin: () => void
+}
+
+const LandingPage = ({ onLogin }: LandingPageProps) => {
+  const navigate = useNavigate()
+
+  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onLogin()
+    navigate('/menu', { replace: true })
+  }
+
   return (
     <div className="page-shell">
       <header className="topbar">
@@ -124,15 +139,15 @@ const LandingPage = () => {
             <p>Accede al panel de administración para gestionar alumnos, asignaturas y seguimiento.</p>
           </div>
 
-          <form className="login-form" action="/menu">
+          <form className="login-form" onSubmit={handleLogin}>
             <label>
               Usuario
-              <input type="text" name="usuario" placeholder="Nombre de usuario" />
+              <input type="text" name="usuario" placeholder="Nombre de usuario" required />
             </label>
 
             <label>
               Contraseña
-              <input type="password" name="password" placeholder="••••••••" />
+              <input type="password" name="password" placeholder="••••••••" required />
             </label>
 
             <button type="submit">Entrar</button>
