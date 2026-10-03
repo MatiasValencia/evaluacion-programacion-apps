@@ -32,10 +32,11 @@ const menuItems = [
 type AlumnosPageProps = {
   students: Student[]
   setStudents: Dispatch<SetStateAction<Student[]>>
+  onStudentDelete: (studentId: number) => void
   onLogout: () => void
 }
 
-const AlumnosPage = ({ students, setStudents, onLogout }: AlumnosPageProps) => {
+const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: AlumnosPageProps) => {
   const navigate = useNavigate()
   const [form, setForm] = useState<StudentForm>(emptyForm)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -82,7 +83,7 @@ const AlumnosPage = ({ students, setStudents, onLogout }: AlumnosPageProps) => {
   }
 
   const deleteStudent = (id: number) => {
-    setStudents((currentStudents) => currentStudents.filter((student) => student.id !== id))
+    onStudentDelete(id)
     setConfirmingDeleteId(null)
   }
 

@@ -1,16 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import './App.css'
 import LandingPage from './pages/LandingPage'
 import MenuPage from './pages/MenuPage'
 import AlumnosPage, { type Student } from './pages/AlumnosPage'
-import AsignaturasPage from './pages/AsignaturasPage'
+import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage from './pages/AsistenciaPage'
 import EvaluacionesPage from './pages/EvaluacionesPage'
 
+const studentsStorageKey = 'prufodis-students'
+const assignmentsStorageKey = 'prufodis-assignments'
+
+const readStoredArray = <T,>(key: string): T[] => {
+  const storedValue = localStorage.getItem(key)
+  if (storedValue === null) return []
+
+  const parsedValue: unknown = JSON.parse(storedValue)
+  if (!Array.isArray(parsedValue)) {
+    throw new Error(`Los datos guardados en "${key}" no tienen un formato válido.`)
+  }
+
+  return parsedValue as T[]
+}
+
 function App() {
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<Student[]>(() => readStoredArray<Student>(studentsStorageKey))
+  const [assignments, setAssignments] = useState<Assignment[]>(() =>
+    readStoredArray<Assignment>(assignmentsStorageKey),
+  )
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem(studentsStorageKey, JSON.stringify(students))
+  }, [students])
+
+  useEffect(() => {
+    localStorage.setItem(assignmentsStorageKey, JSON.stringify(assignments))
+  }, [assignments])
 
   return (
     <BrowserRouter>
@@ -30,11 +56,32 @@ function App() {
               <AlumnosPage
                 students={students}
                 setStudents={setStudents}
+                onStudentDelete={(studentId) => {
+                  setStudents((currentStudents) =>
+                    currentStudents.filter((student) => student.id !== studentId),
+                  )
+                  setAssignments((currentAssignments) =>
+                    currentAssignments.map((assignment) => ({
+                      ...assignment,
+                      studentIds: assignment.studentIds.filter((id) => id !== studentId),
+                    })),
+                  )
+                }}
                 onLogout={() => setIsAuthenticated(false)}
               />
             }
           />
-          <Route path="asignaturas" element={<AsignaturasPage />} />
+          <Route
+            path="asignaturas"
+            element={
+              <AsignaturasPage
+                students={students}
+                assignments={assignments}
+                setAssignments={setAssignments}
+                onLogout={() => setIsAuthenticated(false)}
+              />
+            }
+          />
           <Route path="asistencia" element={<AsistenciaPage />} />
           <Route path="evaluaciones" element={<EvaluacionesPage />} />
         </Route>
