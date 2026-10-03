@@ -105,7 +105,7 @@ const AsistenciaPage = ({
     setIsFormOpen(false)
     setEditingId(null)
     setValidationMessage('')
-    navigate('/menu')
+    navigate('/menu/asistencia')
   }
 
   const selectAssignment = (assignmentId: string) => {
@@ -169,7 +169,7 @@ const AsistenciaPage = ({
     )
     setIsFormOpen(false)
     setEditingId(null)
-    navigate('/menu')
+    navigate('/menu/asistencia')
   }
 
   const toggleStudentAttendance = (studentId: number, present: boolean) => {
