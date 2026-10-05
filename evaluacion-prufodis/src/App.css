@@ -347,6 +347,10 @@
   line-height: 1.7;
 }
 
+#access-denied-title {
+  color: #fff;
+}
+
 .login-form {
   display: flex;
   flex-direction: column;
