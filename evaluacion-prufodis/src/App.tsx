@@ -6,11 +6,12 @@ import MenuPage from './pages/MenuPage'
 import AlumnosPage, { type Student } from './pages/AlumnosPage'
 import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
-import EvaluacionesPage from './pages/EvaluacionesPage'
+import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
 
 const studentsStorageKey = 'prufodis-students'
 const assignmentsStorageKey = 'prufodis-assignments'
 const attendanceStorageKey = 'prufodis-attendance'
+const evaluationGradesStorageKey = 'prufodis-evaluation-grades'
 
 const readStoredArray = <T,>(key: string): T[] => {
   const storedValue = localStorage.getItem(key)
@@ -32,6 +33,9 @@ function App() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() =>
     readStoredArray<AttendanceRecord>(attendanceStorageKey),
   )
+  const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>(() =>
+    readStoredArray<EvaluationGrade>(evaluationGradesStorageKey),
+  )
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
@@ -45,6 +49,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(attendanceStorageKey, JSON.stringify(attendanceRecords))
   }, [attendanceRecords])
+
+  useEffect(() => {
+    localStorage.setItem(evaluationGradesStorageKey, JSON.stringify(evaluationGrades))
+  }, [evaluationGrades])
 
   return (
     <BrowserRouter>
@@ -102,7 +110,18 @@ function App() {
               />
             }
           />
-          <Route path="evaluaciones" element={<EvaluacionesPage />} />
+          <Route
+            path="evaluaciones"
+            element={
+              <EvaluacionesPage
+                students={students}
+                assignments={assignments}
+                grades={evaluationGrades}
+                setGrades={setEvaluationGrades}
+                onLogout={() => setIsAuthenticated(false)}
+              />
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
