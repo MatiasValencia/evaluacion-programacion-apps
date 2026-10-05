@@ -49,7 +49,7 @@ function App() {
 
   const handleLogout = () => {
     sessionStorage.removeItem(authenticationStorageKey)
-    setIsAuthenticated(false)
+    window.location.replace('/')
   }
 
   useEffect(() => {
