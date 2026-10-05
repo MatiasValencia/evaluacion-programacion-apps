@@ -65,7 +65,18 @@ function App() {
           path="/menu"
           element={isAuthenticated ? <Outlet /> : <Navigate to="/" replace />}
         >
-          <Route path="" element={<MenuPage onLogout={() => setIsAuthenticated(false)} />} />
+          <Route
+            path=""
+            element={
+              <MenuPage
+                students={students}
+                assignments={assignments}
+                attendanceRecords={attendanceRecords}
+                evaluationGrades={evaluationGrades}
+                onLogout={() => setIsAuthenticated(false)}
+              />
+            }
+          />
           <Route
             path="alumnos"
             element={
