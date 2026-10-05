@@ -7,7 +7,9 @@ import AlumnosPage, { type Student } from './pages/AlumnosPage'
 import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
 import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
+import AccessDeniedPage from './pages/AccessDeniedPage'
 
+const authenticationStorageKey = 'prufodis-authenticated'
 const studentsStorageKey = 'prufodis-students'
 const assignmentsStorageKey = 'prufodis-assignments'
 const attendanceStorageKey = 'prufodis-attendance'
@@ -36,7 +38,19 @@ function App() {
   const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>(() =>
     readStoredArray<EvaluationGrade>(evaluationGradesStorageKey),
   )
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => sessionStorage.getItem(authenticationStorageKey) === 'true',
+  )
+
+  const handleLogin = () => {
+    sessionStorage.setItem(authenticationStorageKey, 'true')
+    setIsAuthenticated(true)
+  }
+
+  const handleLogout = () => {
+    sessionStorage.removeItem(authenticationStorageKey)
+    setIsAuthenticated(false)
+  }
 
   useEffect(() => {
     localStorage.setItem(studentsStorageKey, JSON.stringify(students))
@@ -59,13 +73,25 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<LandingPage onLogin={() => setIsAuthenticated(true)} />}
+          element={<LandingPage onLogin={handleLogin} />}
         />
+        <Route path="/acceso-denegado" element={<AccessDeniedPage />} />
         <Route
           path="/menu"
-          element={isAuthenticated ? <Outlet /> : <Navigate to="/" replace />}
+          element={isAuthenticated ? <Outlet /> : <Navigate to="/acceso-denegado" replace />}
         >
-          <Route path="" element={<MenuPage onLogout={() => setIsAuthenticated(false)} />} />
+          <Route
+            path=""
+            element={
+              <MenuPage
+                students={students}
+                assignments={assignments}
+                attendanceRecords={attendanceRecords}
+                evaluationGrades={evaluationGrades}
+                onLogout={handleLogout}
+              />
+            }
+          />
           <Route
             path="alumnos"
             element={
@@ -83,7 +109,7 @@ function App() {
                     })),
                   )
                 }}
-                onLogout={() => setIsAuthenticated(false)}
+                onLogout={handleLogout}
               />
             }
           />
@@ -94,7 +120,7 @@ function App() {
                 students={students}
                 assignments={assignments}
                 setAssignments={setAssignments}
-                onLogout={() => setIsAuthenticated(false)}
+                onLogout={handleLogout}
               />
             }
           />
@@ -106,7 +132,7 @@ function App() {
                 assignments={assignments}
                 records={attendanceRecords}
                 setRecords={setAttendanceRecords}
-                onLogout={() => setIsAuthenticated(false)}
+                onLogout={handleLogout}
               />
             }
           />
@@ -118,7 +144,7 @@ function App() {
                 assignments={assignments}
                 grades={evaluationGrades}
                 setGrades={setEvaluationGrades}
-                onLogout={() => setIsAuthenticated(false)}
+                onLogout={handleLogout}
               />
             }
           />
