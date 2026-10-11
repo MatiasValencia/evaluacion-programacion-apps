@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import DashboardSidebar from '../components/DashboardSidebar'
 import type { Student } from './AlumnosPage'
 import type { Assignment } from './AsignaturasPage'
 
@@ -22,13 +23,6 @@ type GradeInputTarget = {
   studentId: number
   gradeId: string | null
 }
-
-const menuItems = [
-  { to: '/menu/alumnos', label: 'Alumnos' },
-  { to: '/menu/asignaturas', label: 'Asignaturas' },
-  { to: '/menu/asistencia', label: 'Asistencia' },
-  { to: '/menu/evaluaciones', label: 'Evaluaciones' },
-]
 
 const studentFullName = (student: Student) =>
   `${student.nombres} ${student.primerApellido} ${student.segundoApellido}`.trim()
@@ -152,20 +146,7 @@ const EvaluacionesPage = ({
 
   return (
     <div className="dashboard-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand">PRUFODIS Ucentral</div>
-        <nav className="sidebar-nav" aria-label="Navegación principal">
-          {menuItems.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <DashboardSidebar />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">

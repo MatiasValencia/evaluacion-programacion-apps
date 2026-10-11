@@ -3,6 +3,7 @@ import type { Student } from './AlumnosPage'
 import type { Assignment } from './AsignaturasPage'
 import type { AttendanceRecord } from './AsistenciaPage'
 import type { EvaluationGrade } from './EvaluacionesPage'
+import DashboardSidebar from '../components/DashboardSidebar'
 
 type MenuPageProps = {
   students: Student[]
@@ -11,13 +12,6 @@ type MenuPageProps = {
   evaluationGrades: EvaluationGrade[]
   onLogout: () => void
 }
-
-const menuItems = [
-  { to: '/menu/alumnos', label: 'Alumnos' },
-  { to: '/menu/asignaturas', label: 'Asignaturas' },
-  { to: '/menu/asistencia', label: 'Asistencia' },
-  { to: '/menu/evaluaciones', label: 'Evaluaciones' },
-]
 
 const studentFullName = (studentId: number, students: Student[]) => {
   const student = students.find((item) => item.id === studentId)
@@ -52,20 +46,7 @@ const MenuPage = ({
 
   return (
     <div className="dashboard-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand">PRUFODIS Ucentral</div>
-        <nav className="sidebar-nav">
-          {menuItems.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <DashboardSidebar />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">

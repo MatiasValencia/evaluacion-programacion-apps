@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import DashboardSidebar from '../components/DashboardSidebar'
 
 export type Student = {
   id: number
@@ -21,13 +22,6 @@ const emptyForm: StudentForm = {
   apoderado: '',
   telefono: '',
 }
-
-const menuItems = [
-  { to: '/menu/alumnos', label: 'Alumnos' },
-  { to: '/menu/asignaturas', label: 'Asignaturas' },
-  { to: '/menu/asistencia', label: 'Asistencia' },
-  { to: '/menu/evaluaciones', label: 'Evaluaciones' },
-]
 
 type AlumnosPageProps = {
   students: Student[]
@@ -108,20 +102,7 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
 
   return (
     <div className="dashboard-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand">PRUFODIS Ucentral</div>
-        <nav className="sidebar-nav" aria-label="Navegación principal">
-          {menuItems.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <DashboardSidebar />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">

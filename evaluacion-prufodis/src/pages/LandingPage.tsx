@@ -11,6 +11,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
   const navigate = useNavigate()
   const [loginError, setLoginError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -39,10 +40,27 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
           <span>PRUFODIS - Universidad Central</span>
         </div>
 
-        <nav className="nav">
-          <a href="#features">Funcionalidades</a>
-          <a href="#benefits">Ventajas</a>
-          <a href="#login">Iniciar sesión</a>
+        <button
+          className="menu-toggle landing-menu-toggle"
+          type="button"
+          aria-label={isMenuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+          aria-expanded={isMenuOpen}
+          aria-controls="landing-navigation"
+          onClick={() => setIsMenuOpen((open) => !open)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <nav
+          className={`nav ${isMenuOpen ? 'nav-open' : ''}`}
+          id="landing-navigation"
+          aria-label="Navegación principal"
+        >
+          <a href="#features" onClick={() => setIsMenuOpen(false)}>Funcionalidades</a>
+          <a href="#benefits" onClick={() => setIsMenuOpen(false)}>Ventajas</a>
+          <a href="#login" onClick={() => setIsMenuOpen(false)}>Iniciar sesión</a>
         </nav>
       </header>
 
