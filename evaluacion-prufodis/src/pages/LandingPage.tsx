@@ -1,17 +1,34 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FirebaseError } from 'firebase/app'
+import { hasConfiguredAdministrators, isFirebaseConfigured } from '../firebase'
 
 type LandingPageProps = {
-  onLogin: () => void
+  onLogin: (email: string, password: string) => Promise<void>
 }
 
 const LandingPage = ({ onLogin }: LandingPageProps) => {
   const navigate = useNavigate()
+  const [loginError, setLoginError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onLogin()
-    navigate('/menu', { replace: true })
+    setLoginError('')
+    setIsSubmitting(true)
+
+    const formData = new FormData(event.currentTarget)
+    const email = String(formData.get('email') ?? '').trim()
+    const password = String(formData.get('password') ?? '')
+
+    try {
+      await onLogin(email, password)
+      navigate('/menu', { replace: true })
+    } catch (error) {
+      setLoginError(getLoginErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -140,22 +157,79 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
           </div>
 
           <form className="login-form" onSubmit={handleLogin}>
+            {!isFirebaseConfigured && (
+              <p className="login-message login-error" role="alert">
+                Firebase no está configurado. Completa las variables de entorno del archivo
+                <code> .env.local</code> y reinicia la aplicación.
+              </p>
+            )}
+            {isFirebaseConfigured && !hasConfiguredAdministrators && (
+              <p className="login-message login-error" role="alert">
+                No hay UID de administradores configurados. Añádelos a{' '}
+                <code>VITE_FIREBASE_ADMIN_UIDS</code>.
+              </p>
+            )}
+            {loginError && (
+              <p className="login-message login-error" role="alert">
+                {loginError}
+              </p>
+            )}
             <label>
-              Usuario
-              <input type="text" name="usuario" placeholder="Nombre de usuario" required />
+              Correo electrónico
+              <input
+                type="email"
+                name="email"
+                placeholder="nombre@ejemplo.com"
+                autoComplete="email"
+                required
+              />
             </label>
 
             <label>
               Contraseña
-              <input type="password" name="password" placeholder="••••••••" required />
+              <input
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+              />
             </label>
 
-            <button type="submit">Entrar</button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !isFirebaseConfigured || !hasConfiguredAdministrators}
+            >
+              {isSubmitting ? 'Iniciando sesión…' : 'Entrar'}
+            </button>
           </form>
         </div>
       </section>
     </div>
   )
+}
+
+const getLoginErrorMessage = (error: unknown) => {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case 'auth/invalid-credential':
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+        return 'El correo electrónico o la contraseña no son correctos.'
+      case 'auth/invalid-email':
+        return 'Introduce un correo electrónico válido.'
+      case 'auth/too-many-requests':
+        return 'Hubo demasiados intentos. Espera un momento e inténtalo de nuevo.'
+      case 'auth/network-request-failed':
+        return 'No se pudo conectar con Firebase. Comprueba tu conexión e inténtalo de nuevo.'
+      case 'auth/operation-not-allowed':
+        return 'El inicio de sesión con correo y contraseña no está habilitado en Firebase.'
+      default:
+        return 'No se pudo iniciar sesión. Inténtalo de nuevo.'
+    }
+  }
+
+  return error instanceof Error ? error.message : 'No se pudo iniciar sesión. Inténtalo de nuevo.'
 }
 
 export default LandingPage
