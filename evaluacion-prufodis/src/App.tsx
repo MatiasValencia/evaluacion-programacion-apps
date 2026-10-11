@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 import './App.css'
 import LandingPage from './pages/LandingPage'
 import MenuPage from './pages/MenuPage'
@@ -8,8 +9,8 @@ import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
 import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
+import { authenticateAdmin, firebaseAuth, isAdminUid } from './firebase'
 
-const authenticationStorageKey = 'prufodis-authenticated'
 const studentsStorageKey = 'prufodis-students'
 const assignmentsStorageKey = 'prufodis-assignments'
 const attendanceStorageKey = 'prufodis-attendance'
@@ -38,18 +39,38 @@ function App() {
   const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>(() =>
     readStoredArray<EvaluationGrade>(evaluationGradesStorageKey),
   )
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => sessionStorage.getItem(authenticationStorageKey) === 'true',
-  )
+  const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(firebaseAuth !== null)
 
-  const handleLogin = () => {
-    sessionStorage.setItem(authenticationStorageKey, 'true')
-    setIsAuthenticated(true)
+  useEffect(() => {
+    if (firebaseAuth === null) return
+
+    return onAuthStateChanged(
+      firebaseAuth,
+      (user) => {
+        setAuthenticatedUser(user)
+        setIsAuthLoading(false)
+      },
+      (error) => {
+        console.error('No se pudo restaurar la sesión de Firebase.', error)
+        setAuthenticatedUser(null)
+        setIsAuthLoading(false)
+      },
+    )
+  }, [])
+
+  const handleLogin = async (email: string, password: string) => {
+    const user = await authenticateAdmin(email, password)
+    setAuthenticatedUser(user)
   }
 
   const handleLogout = () => {
-    sessionStorage.removeItem(authenticationStorageKey)
-    window.location.replace('/')
+    if (firebaseAuth === null) return
+
+    void signOut(firebaseAuth).catch((error: unknown) => {
+      console.error('No se pudo cerrar la sesión de Firebase.', error)
+      window.alert('No se pudo cerrar la sesión. Inténtalo de nuevo.')
+    })
   }
 
   useEffect(() => {
@@ -68,17 +89,46 @@ function App() {
     localStorage.setItem(evaluationGradesStorageKey, JSON.stringify(evaluationGrades))
   }, [evaluationGrades])
 
+  if (isAuthLoading) {
+    return (
+      <main className="auth-loading" role="status">
+        Comprobando la sesión…
+      </main>
+    )
+  }
+
+  const isAdmin = authenticatedUser !== null && isAdminUid(authenticatedUser.uid)
+
   return (
     <BrowserRouter>
       <Routes>
         <Route
           path="/"
-          element={<LandingPage onLogin={handleLogin} />}
+          element={
+            isAdmin ? <Navigate to="/menu" replace /> : <LandingPage onLogin={handleLogin} />
+          }
         />
-        <Route path="/acceso-denegado" element={<AccessDeniedPage />} />
+        <Route
+          path="/acceso-denegado"
+          element={
+            authenticatedUser ? (
+              <AccessDeniedPage onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
         <Route
           path="/menu"
-          element={isAuthenticated ? <Outlet /> : <Navigate to="/acceso-denegado" replace />}
+          element={
+            isAdmin ? (
+              <Outlet />
+            ) : authenticatedUser ? (
+              <Navigate to="/acceso-denegado" replace />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         >
           <Route
             path=""
