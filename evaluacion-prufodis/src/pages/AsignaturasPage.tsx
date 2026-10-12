@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
+import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
 
 export type Assignment = {
@@ -40,6 +41,17 @@ const AsignaturasPage = ({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [validationMessage, setValidationMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [assignmentSearch, setAssignmentSearch] = useState('')
+  const [studentSearch, setStudentSearch] = useState('')
+
+  const filteredAssignments = assignments.filter((assignment) => {
+    const matchesAssignment = matchesSearch(assignment.nombre, assignmentSearch)
+    const matchesStudent = students
+      .filter((student) => assignment.studentIds.includes(student.id))
+      .some((student) => matchesSearch(studentFullName(student), studentSearch))
+
+    return matchesAssignment && (studentSearch.trim() === '' || matchesStudent)
+  })
 
   const openNewForm = () => {
     setForm({ nombre: '', studentIds: [] })
@@ -231,14 +243,42 @@ const AsignaturasPage = ({
               </button>
             </div>
 
+            {assignments.length > 0 && (
+              <div className="list-filters">
+                <label className="search-filter">
+                  Buscar asignatura
+                  <input
+                    type="search"
+                    placeholder="Nombre de la asignatura"
+                    value={assignmentSearch}
+                    onChange={(event) => setAssignmentSearch(event.target.value)}
+                  />
+                </label>
+                <label className="search-filter">
+                  Buscar alumno
+                  <input
+                    type="search"
+                    placeholder="Nombre o apellido"
+                    value={studentSearch}
+                    onChange={(event) => setStudentSearch(event.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+
             {assignments.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay asignaturas registradas.</p>
                 <span>Agrega una asignatura para comenzar a gestionar sus alumnos.</span>
               </div>
+            ) : filteredAssignments.length === 0 ? (
+              <div className="students-empty-state" role="status">
+                <p>No se encontraron asignaturas.</p>
+                <span>Prueba con otro nombre de asignatura o alumno.</span>
+              </div>
             ) : (
               <ul className="students-list">
-                {assignments.map((assignment) => {
+                {filteredAssignments.map((assignment) => {
                   const assignedStudents = students.filter((student) =>
                     assignment.studentIds.includes(student.id),
                   )

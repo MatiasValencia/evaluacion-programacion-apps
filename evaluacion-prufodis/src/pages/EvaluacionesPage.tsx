@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
+import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
 import type { Assignment } from './AsignaturasPage'
 
@@ -52,11 +53,24 @@ const EvaluacionesPage = ({
   const [gradeInput, setGradeInput] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [assignmentSearch, setAssignmentSearch] = useState('')
+  const [studentSearch, setStudentSearch] = useState('')
 
   const assignedStudents = students.filter((student) =>
     assignments
       .find((assignment) => assignment.id === selectedAssignmentId)
       ?.studentIds.includes(student.id),
+  )
+
+  const filteredAssignments = assignments.filter(
+    (assignment) =>
+      matchesSearch(assignment.nombre, assignmentSearch) &&
+      grades.some((grade) => {
+        if (grade.assignmentId !== assignment.id) return false
+        if (studentSearch.trim() === '') return true
+        const student = students.find((item) => item.id === grade.studentId)
+        return student !== undefined && matchesSearch(studentFullName(student), studentSearch)
+      }),
   )
 
   const openRegistration = () => {
@@ -331,22 +345,54 @@ const EvaluacionesPage = ({
               </button>
             </div>
 
+            {grades.length > 0 && (
+              <div className="list-filters">
+                <label className="search-filter">
+                  Buscar asignatura
+                  <input
+                    type="search"
+                    placeholder="Nombre de la asignatura"
+                    value={assignmentSearch}
+                    onChange={(event) => setAssignmentSearch(event.target.value)}
+                  />
+                </label>
+                <label className="search-filter">
+                  Buscar alumno
+                  <input
+                    type="search"
+                    placeholder="Nombre o apellido"
+                    value={studentSearch}
+                    onChange={(event) => setStudentSearch(event.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+
             {grades.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay evaluaciones registradas.</p>
                 <span>Registra notas para consultar los resultados por asignatura.</span>
               </div>
+            ) : filteredAssignments.length === 0 ? (
+              <div className="students-empty-state" role="status">
+                <p>No se encontraron evaluaciones.</p>
+                <span>Prueba con otro nombre de asignatura o alumno.</span>
+              </div>
             ) : (
               <ul className="students-list">
-                {assignments
-                  .filter((assignment) =>
-                    grades.some((grade) => grade.assignmentId === assignment.id),
-                  )
-                  .map((assignment) => {
+                {filteredAssignments.map((assignment) => {
                     const isExpanded = expandedAssignmentId === assignment.id
-                    const assignmentStudents = students.filter((student) =>
-                      assignment.studentIds.includes(student.id),
-                    )
+                    const assignmentStudents = students.filter((student) => {
+                      if (!assignment.studentIds.includes(student.id)) return false
+                      if (studentSearch.trim() === '') return true
+                      return (
+                        grades.some(
+                          (grade) =>
+                            grade.assignmentId === assignment.id &&
+                            grade.studentId === student.id,
+                        ) && matchesSearch(studentFullName(student), studentSearch)
+                      )
+                    })
 
                     return (
                       <li className="assignment-row" key={assignment.id}>

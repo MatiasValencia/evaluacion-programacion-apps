@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
+import { matchesSearch } from '../utils/search'
 
 export type Student = {
   id: number
@@ -38,6 +39,14 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [nameSearch, setNameSearch] = useState('')
+
+  const filteredStudents = students.filter((student) =>
+    matchesSearch(
+      `${student.nombres} ${student.primerApellido} ${student.segundoApellido}`,
+      nameSearch,
+    ),
+  )
 
   const openNewStudentForm = () => {
     setForm(emptyForm)
@@ -230,14 +239,33 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
               </button>
             </div>
 
+            {students.length > 0 && (
+              <div className="list-filters">
+                <label className="search-filter">
+                  Buscar alumno
+                  <input
+                    type="search"
+                    placeholder="Nombre o apellido"
+                    value={nameSearch}
+                    onChange={(event) => setNameSearch(event.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+
             {students.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay alumnos registrados.</p>
                 <span>Agrega un alumno para comenzar a gestionar sus datos.</span>
               </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="students-empty-state" role="status">
+                <p>No se encontraron alumnos.</p>
+                <span>Prueba con otro nombre o apellido.</span>
+              </div>
             ) : (
               <ul className="students-list">
-                {students.map((student) => (
+                {filteredStudents.map((student) => (
                   <li className="student-row" key={student.id}>
                     <span className="student-name">
                       {student.nombres} {student.primerApellido} {student.segundoApellido}

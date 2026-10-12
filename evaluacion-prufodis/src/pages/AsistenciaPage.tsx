@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
+import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
 import type { Assignment } from './AsignaturasPage'
 
@@ -36,6 +37,9 @@ const formatToday = () => {
   return `${day}/${month}/${today.getFullYear()}`
 }
 
+const formatDate = (date: Date) =>
+  `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
+
 const isValidDate = (value: string) => {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value)
   if (!match) return false
@@ -69,6 +73,14 @@ const AsistenciaPage = ({
   const [deleteConfirmationStep, setDeleteConfirmationStep] = useState(1)
   const [validationMessage, setValidationMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [assignmentSearch, setAssignmentSearch] = useState('')
+  const [studentSearch, setStudentSearch] = useState('')
+  const [filterDate, setFilterDate] = useState('')
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date()
+    return new Date(today.getFullYear(), today.getMonth(), 1)
+  })
   const [form, setForm] = useState<AttendanceForm>({
     assignmentId: '',
     date: formatToday(),
@@ -76,6 +88,38 @@ const AsistenciaPage = ({
     endTime: '',
     students: [],
   })
+
+  const filteredAttendance = assignments
+    .map((assignment) => ({
+      assignment,
+      records: records.filter(
+        (record) =>
+          record.assignmentId === assignment.id &&
+          (filterDate === '' || record.date === filterDate) &&
+          (studentSearch.trim() === '' ||
+            record.students.some((student) =>
+              matchesSearch(student.studentName, studentSearch),
+            )),
+      ),
+    }))
+    .filter(
+      ({ assignment, records: assignmentRecords }) =>
+        matchesSearch(assignment.nombre, assignmentSearch) &&
+        ((filterDate === '' && studentSearch.trim() === '') ||
+          assignmentRecords.length > 0),
+    )
+
+  const calendarDays = new Date(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth() + 1,
+    0,
+  ).getDate()
+  const calendarStartDay = new Date(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth(),
+    1,
+  ).getDay()
+  const todayDate = formatToday()
 
   const openNewForm = () => {
     setForm({
@@ -370,11 +414,147 @@ const AsistenciaPage = ({
               </button>
             </div>
 
+            <div className="list-filters attendance-filters">
+              <label className="search-filter">
+                Buscar asignatura
+                <input
+                  type="search"
+                  placeholder="Nombre de la asignatura"
+                  value={assignmentSearch}
+                  onChange={(event) => setAssignmentSearch(event.target.value)}
+                />
+              </label>
+              <label className="search-filter">
+                Buscar alumno
+                <input
+                  type="search"
+                  placeholder="Nombre o apellido"
+                  value={studentSearch}
+                  onChange={(event) => setStudentSearch(event.target.value)}
+                />
+              </label>
+              <div className="date-filter">
+                <span className="date-filter-label">Filtrar por fecha</span>
+                <button
+                  className="date-filter-button"
+                  type="button"
+                  aria-expanded={isDatePickerOpen}
+                  aria-haspopup="dialog"
+                  onClick={() => {
+                    if (!isDatePickerOpen) {
+                      const today = new Date()
+                      setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1))
+                    }
+                    setIsDatePickerOpen((isOpen) => !isOpen)
+                  }}
+                >
+                  {filterDate || 'Seleccionar fecha'}
+                </button>
+                {isDatePickerOpen && (
+                  <div className="date-picker" role="dialog" aria-label="Calendario de fecha">
+                    <div className="calendar-heading">
+                      <button
+                        className="calendar-month-button"
+                        type="button"
+                        aria-label="Mes anterior"
+                        onClick={() =>
+                          setCalendarMonth(
+                            (month) =>
+                              new Date(month.getFullYear(), month.getMonth() - 1, 1),
+                          )
+                        }
+                      >
+                        ‹
+                      </button>
+                      <strong>
+                        {calendarMonth.toLocaleDateString('es-CL', {
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </strong>
+                      <button
+                        className="calendar-month-button"
+                        type="button"
+                        aria-label="Mes siguiente"
+                        onClick={() =>
+                          setCalendarMonth(
+                            (month) =>
+                              new Date(month.getFullYear(), month.getMonth() + 1, 1),
+                          )
+                        }
+                      >
+                        ›
+                      </button>
+                    </div>
+                    <div className="calendar-grid" role="grid">
+                      {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day) => (
+                        <span className="calendar-weekday" role="columnheader" key={day}>
+                          {day}
+                        </span>
+                      ))}
+                      {Array.from({ length: calendarStartDay }, (_, index) => (
+                        <span className="calendar-empty-day" aria-hidden="true" key={`empty-${index}`} />
+                      ))}
+                      {Array.from({ length: calendarDays }, (_, index) => {
+                        const date = new Date(
+                          calendarMonth.getFullYear(),
+                          calendarMonth.getMonth(),
+                          index + 1,
+                        )
+                        const dateValue = formatDate(date)
+                        const isToday = dateValue === todayDate
+                        const isSelected = dateValue === filterDate
+
+                        return (
+                          <button
+                            className={`calendar-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}`}
+                            type="button"
+                            role="gridcell"
+                            aria-pressed={isSelected}
+                            aria-label={date.toLocaleDateString('es-CL', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                            key={dateValue}
+                            onClick={() => {
+                              setFilterDate(dateValue)
+                              setIsDatePickerOpen(false)
+                            }}
+                          >
+                            {index + 1}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      className="calendar-clear-button"
+                      type="button"
+                      onClick={() => {
+                        setFilterDate('')
+                        setIsDatePickerOpen(false)
+                      }}
+                    >
+                      Quitar filtro de fecha
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {assignments.length === 0 ? (
+              <div className="students-empty-state">
+                <p>Aún no hay asignaturas registradas.</p>
+                <span>Registra una asignatura antes de consultar la asistencia.</span>
+              </div>
+            ) : filteredAttendance.length === 0 ? (
+              <div className="students-empty-state" role="status">
+                <p>No se encontraron registros de asistencia.</p>
+                <span>Prueba con otros filtros de asignatura, alumno o fecha.</span>
+              </div>
+            ) : (
             <ul className="students-list attendance-assignment-list">
-              {assignments.map((assignment) => {
-                const assignmentRecords = records.filter(
-                  (record) => record.assignmentId === assignment.id,
-                )
+              {filteredAttendance.map(({ assignment, records: assignmentRecords }) => {
                 const isAssignmentExpanded = expandedAssignmentId === assignment.id
 
                 return (
@@ -407,10 +587,16 @@ const AsistenciaPage = ({
                             {assignmentRecords.map((record) => {
                               const isExpanded = expandedId === record.id
                               const presentStudents = record.students.filter(
-                                (student) => student.present,
+                                (student) =>
+                                  student.present &&
+                                  (studentSearch.trim() === '' ||
+                                    matchesSearch(student.studentName, studentSearch)),
                               )
                               const absentStudents = record.students.filter(
-                                (student) => !student.present,
+                                (student) =>
+                                  !student.present &&
+                                  (studentSearch.trim() === '' ||
+                                    matchesSearch(student.studentName, studentSearch)),
                               )
 
                               return (
@@ -535,6 +721,7 @@ const AsistenciaPage = ({
                 )
               })}
             </ul>
+            )}
           </section>
         )}
       </main>
