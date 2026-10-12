@@ -9,38 +9,26 @@ import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
 import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
-import { authenticateAdmin, firebaseAuth, isAdminUid } from './firebase'
-
-const studentsStorageKey = 'prufodis-students'
-const assignmentsStorageKey = 'prufodis-assignments'
-const attendanceStorageKey = 'prufodis-attendance'
-const evaluationGradesStorageKey = 'prufodis-evaluation-grades'
-
-const readStoredArray = <T,>(key: string): T[] => {
-  const storedValue = localStorage.getItem(key)
-  if (storedValue === null) return []
-
-  const parsedValue: unknown = JSON.parse(storedValue)
-  if (!Array.isArray(parsedValue)) {
-    throw new Error(`Los datos guardados en "${key}" no tienen un formato válido.`)
-  }
-
-  return parsedValue as T[]
-}
+import { authenticateAdmin, firebaseAuth, firebaseDb, isAdminUid } from './firebase'
+import {
+  deleteRecord,
+  deleteStudentAndUnlinkFromAssignments,
+  initializeFirestoreData,
+  saveEvaluationGrades,
+  saveRecord,
+  subscribeToCollection,
+} from './firebase-store'
 
 function App() {
-  const [students, setStudents] = useState<Student[]>(() => readStoredArray<Student>(studentsStorageKey))
-  const [assignments, setAssignments] = useState<Assignment[]>(() =>
-    readStoredArray<Assignment>(assignmentsStorageKey),
-  )
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() =>
-    readStoredArray<AttendanceRecord>(attendanceStorageKey),
-  )
-  const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>(() =>
-    readStoredArray<EvaluationGrade>(evaluationGradesStorageKey),
-  )
+  const [students, setStudents] = useState<Student[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
+  const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>([])
   const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(firebaseAuth !== null)
+  const [loadedAdminUid, setLoadedAdminUid] = useState<string | null>(null)
+  const [dataError, setDataError] = useState<string | null>(null)
+  const [dataRetry, setDataRetry] = useState(0)
 
   useEffect(() => {
     if (firebaseAuth === null) return
@@ -49,6 +37,8 @@ function App() {
       firebaseAuth,
       (user) => {
         setAuthenticatedUser(user)
+        setLoadedAdminUid(null)
+        setDataError(null)
         setIsAuthLoading(false)
       },
       (error) => {
@@ -73,21 +63,92 @@ function App() {
     })
   }
 
-  useEffect(() => {
-    localStorage.setItem(studentsStorageKey, JSON.stringify(students))
-  }, [students])
+  const isAdmin = authenticatedUser !== null && isAdminUid(authenticatedUser.uid)
+  const adminUid = isAdmin ? authenticatedUser.uid : null
 
   useEffect(() => {
-    localStorage.setItem(assignmentsStorageKey, JSON.stringify(assignments))
-  }, [assignments])
+    if (adminUid === null || firebaseDb === null) return
 
-  useEffect(() => {
-    localStorage.setItem(attendanceStorageKey, JSON.stringify(attendanceRecords))
-  }, [attendanceRecords])
+    let isActive = true
+    let hasStartedInitialization = false
+    const receivedCollections = new Set<string>()
 
-  useEffect(() => {
-    localStorage.setItem(evaluationGradesStorageKey, JSON.stringify(evaluationGrades))
-  }, [evaluationGrades])
+    const handleDataError = (error: Error) => {
+      console.error('No se pudieron sincronizar los datos con Firestore.', error)
+      if (!isActive) return
+      setDataError(error.message)
+    }
+
+    const initializeWhenReady = () => {
+      if (receivedCollections.size !== 4 || hasStartedInitialization) return
+      hasStartedInitialization = true
+
+      void initializeFirestoreData()
+        .then((data) => {
+          if (!isActive) return
+          setStudents(data.students)
+          setAssignments(data.assignments)
+          setAttendanceRecords(data.attendanceRecords)
+          setEvaluationGrades(data.evaluationGrades)
+          setLoadedAdminUid(adminUid)
+        })
+        .catch((error: unknown) => {
+          handleDataError(
+            error instanceof Error ? error : new Error('Error inesperado al cargar los datos.'),
+          )
+        })
+    }
+
+    const subscriptions = [
+      subscribeToCollection(
+        'students',
+        (records) => {
+          if (!isActive) return
+          setStudents(records)
+          receivedCollections.add('students')
+          initializeWhenReady()
+        },
+        handleDataError,
+      ),
+      subscribeToCollection(
+        'assignments',
+        (records) => {
+          if (!isActive) return
+          setAssignments(records)
+          receivedCollections.add('assignments')
+          initializeWhenReady()
+        },
+        handleDataError,
+      ),
+      subscribeToCollection(
+        'attendanceRecords',
+        (records) => {
+          if (!isActive) return
+          setAttendanceRecords(records)
+          receivedCollections.add('attendanceRecords')
+          initializeWhenReady()
+        },
+        handleDataError,
+      ),
+      subscribeToCollection(
+        'evaluationGrades',
+        (records) => {
+          if (!isActive) return
+          setEvaluationGrades(records)
+          receivedCollections.add('evaluationGrades')
+          initializeWhenReady()
+        },
+        handleDataError,
+      ),
+    ]
+
+    return () => {
+      isActive = false
+      subscriptions.forEach((unsubscribe) => unsubscribe())
+    }
+  }, [adminUid, dataRetry])
+
+  const isDataLoading = isAdmin && loadedAdminUid !== adminUid && dataError === null
 
   if (isAuthLoading) {
     return (
@@ -97,7 +158,34 @@ function App() {
     )
   }
 
-  const isAdmin = authenticatedUser !== null && isAdminUid(authenticatedUser.uid)
+  if (isAdmin && isDataLoading) {
+    return (
+      <main className="auth-loading" role="status">
+        Sincronizando los datos…
+      </main>
+    )
+  }
+
+  if (isAdmin && dataError !== null) {
+    return (
+      <main className="auth-loading" role="alert">
+        <p>No se pudieron cargar los datos de Firebase: {dataError}</p>
+        <button
+          className="secondary-button"
+          onClick={() => {
+            setDataError(null)
+            setLoadedAdminUid(null)
+            setDataRetry((retry) => retry + 1)
+          }}
+        >
+          Reintentar
+        </button>
+        <button className="secondary-button" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
+      </main>
+    )
+  }
 
   return (
     <BrowserRouter>
@@ -147,18 +235,8 @@ function App() {
             element={
               <AlumnosPage
                 students={students}
-                setStudents={setStudents}
-                onStudentDelete={(studentId) => {
-                  setStudents((currentStudents) =>
-                    currentStudents.filter((student) => student.id !== studentId),
-                  )
-                  setAssignments((currentAssignments) =>
-                    currentAssignments.map((assignment) => ({
-                      ...assignment,
-                      studentIds: assignment.studentIds.filter((id) => id !== studentId),
-                    })),
-                  )
-                }}
+                onStudentSave={(student) => saveRecord('students', student)}
+                onStudentDelete={deleteStudentAndUnlinkFromAssignments}
                 onLogout={handleLogout}
               />
             }
@@ -169,7 +247,8 @@ function App() {
               <AsignaturasPage
                 students={students}
                 assignments={assignments}
-                setAssignments={setAssignments}
+                onAssignmentSave={(assignment) => saveRecord('assignments', assignment)}
+                onAssignmentDelete={(id) => deleteRecord('assignments', id)}
                 onLogout={handleLogout}
               />
             }
@@ -181,7 +260,8 @@ function App() {
                 students={students}
                 assignments={assignments}
                 records={attendanceRecords}
-                setRecords={setAttendanceRecords}
+                onRecordSave={(record) => saveRecord('attendanceRecords', record)}
+                onRecordDelete={(id) => deleteRecord('attendanceRecords', id)}
                 onLogout={handleLogout}
               />
             }
@@ -193,7 +273,7 @@ function App() {
                 students={students}
                 assignments={assignments}
                 grades={evaluationGrades}
-                setGrades={setEvaluationGrades}
+                onGradesSave={saveEvaluationGrades}
                 onLogout={handleLogout}
               />
             }

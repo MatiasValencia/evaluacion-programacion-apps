@@ -5,6 +5,7 @@ import {
   signOut,
   type User,
 } from 'firebase/auth'
+import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,6 +28,7 @@ const firebaseApp = isFirebaseConfigured
   : null
 
 export const firebaseAuth = firebaseApp === null ? null : getAuth(firebaseApp)
+export const firebaseDb = firebaseApp === null ? null : getFirestore(firebaseApp)
 
 const adminUids = (import.meta.env.VITE_FIREBASE_ADMIN_UIDS ?? '')
   .split(',')

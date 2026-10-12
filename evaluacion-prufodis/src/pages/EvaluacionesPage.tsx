@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
 import type { Student } from './AlumnosPage'
@@ -15,7 +15,10 @@ type EvaluacionesPageProps = {
   students: Student[]
   assignments: Assignment[]
   grades: EvaluationGrade[]
-  setGrades: Dispatch<SetStateAction<EvaluationGrade[]>>
+  onGradesSave: (
+    previousGrades: EvaluationGrade[],
+    nextGrades: EvaluationGrade[],
+  ) => Promise<void>
   onLogout: () => void
 }
 
@@ -35,18 +38,20 @@ const EvaluacionesPage = ({
   students,
   assignments,
   grades,
-  setGrades,
+  onGradesSave,
   onLogout,
 }: EvaluacionesPageProps) => {
   const navigate = useNavigate()
   const [isRegistering, setIsRegistering] = useState(false)
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('')
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null)
+  const [baseGrades, setBaseGrades] = useState<EvaluationGrade[]>([])
   const [draftGrades, setDraftGrades] = useState<EvaluationGrade[]>([])
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null)
   const [inputTarget, setInputTarget] = useState<GradeInputTarget | null>(null)
   const [gradeInput, setGradeInput] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const assignedStudents = students.filter((student) =>
     assignments
@@ -55,7 +60,9 @@ const EvaluacionesPage = ({
   )
 
   const openRegistration = () => {
-    setDraftGrades(grades.map((grade) => ({ ...grade })))
+    const initialGrades = grades.map((grade) => ({ ...grade }))
+    setBaseGrades(initialGrades)
+    setDraftGrades(initialGrades.map((grade) => ({ ...grade })))
     setSelectedAssignmentId('')
     setActiveGradeId(null)
     setInputTarget(null)
@@ -72,13 +79,25 @@ const EvaluacionesPage = ({
     setValidationMessage('')
   }
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
+    if (isSaving) return
     if (inputTarget) {
       setValidationMessage('Presiona Enter para guardar la nota antes de guardar los cambios.')
       return
     }
-    setGrades(draftGrades)
-    discardChanges()
+
+    setIsSaving(true)
+    try {
+      await onGradesSave(baseGrades, draftGrades)
+      discardChanges()
+    } catch (error: unknown) {
+      console.error('No se pudieron guardar las evaluaciones en Firebase.', error)
+      setValidationMessage(
+        error instanceof Error ? error.message : 'No se pudieron guardar las evaluaciones.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const startAddingGrade = (studentId: number) => {
@@ -292,10 +311,10 @@ const EvaluacionesPage = ({
               </p>
             )}
             <div className="student-form-actions grade-form-actions">
-              <button className="primary-button" onClick={saveChanges}>
+              <button className="primary-button" onClick={saveChanges} disabled={isSaving}>
                 Guardar notas
               </button>
-              <button className="secondary-button" onClick={discardChanges}>
+              <button className="secondary-button" onClick={discardChanges} disabled={isSaving}>
                 Descartar cambios
               </button>
             </div>

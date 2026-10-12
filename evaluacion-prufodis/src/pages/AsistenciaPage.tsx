@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
 import type { Student } from './AlumnosPage'
@@ -24,7 +24,8 @@ type AsistenciaPageProps = {
   students: Student[]
   assignments: Assignment[]
   records: AttendanceRecord[]
-  setRecords: Dispatch<SetStateAction<AttendanceRecord[]>>
+  onRecordSave: (record: AttendanceRecord) => Promise<void>
+  onRecordDelete: (recordId: string) => Promise<void>
   onLogout: () => void
 }
 
@@ -55,7 +56,8 @@ const AsistenciaPage = ({
   students,
   assignments,
   records,
-  setRecords,
+  onRecordSave,
+  onRecordDelete,
   onLogout,
 }: AsistenciaPageProps) => {
   const navigate = useNavigate()
@@ -65,6 +67,7 @@ const AsistenciaPage = ({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [deleteConfirmationStep, setDeleteConfirmationStep] = useState(1)
   const [validationMessage, setValidationMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
   const [form, setForm] = useState<AttendanceForm>({
     assignmentId: '',
     date: formatToday(),
@@ -118,8 +121,9 @@ const AsistenciaPage = ({
     setValidationMessage('')
   }
 
-  const saveAttendance = (event: FormEvent<HTMLFormElement>) => {
+  const saveAttendance = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSaving) return
 
     if (!form.assignmentId) {
       setValidationMessage('Selecciona una asignatura.')
@@ -154,16 +158,20 @@ const AsistenciaPage = ({
       assignmentName: assignment.nombre,
     }
 
-    setRecords((currentRecords) =>
-      editingId === null
-        ? [...currentRecords, record]
-        : currentRecords.map((currentRecord) =>
-            currentRecord.id === editingId ? record : currentRecord,
-          ),
-    )
-    setIsFormOpen(false)
-    setEditingId(null)
-    navigate('/menu/asistencia')
+    setIsSaving(true)
+    try {
+      await onRecordSave(record)
+      setIsFormOpen(false)
+      setEditingId(null)
+      navigate('/menu/asistencia')
+    } catch (error: unknown) {
+      console.error('No se pudo guardar la asistencia en Firebase.', error)
+      setValidationMessage(
+        error instanceof Error ? error.message : 'No se pudo guardar la asistencia.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const toggleStudentAttendance = (studentId: number, present: boolean) => {
@@ -175,10 +183,18 @@ const AsistenciaPage = ({
     }))
   }
 
-  const deleteRecord = (id: string) => {
-    setRecords((currentRecords) => currentRecords.filter((record) => record.id !== id))
-    setConfirmingDeleteId(null)
-    setDeleteConfirmationStep(1)
+  const deleteRecord = async (id: string) => {
+    try {
+      await onRecordDelete(id)
+      setConfirmingDeleteId(null)
+      setDeleteConfirmationStep(1)
+      setValidationMessage('')
+    } catch (error: unknown) {
+      console.error('No se pudo eliminar la asistencia en Firebase.', error)
+      setValidationMessage(
+        error instanceof Error ? error.message : 'No se pudo eliminar la asistencia.',
+      )
+    }
   }
 
   return (
@@ -322,10 +338,15 @@ const AsistenciaPage = ({
                 </p>
               )}
               <div className="student-form-actions">
-                <button className="primary-button" type="submit">
+                <button className="primary-button" type="submit" disabled={isSaving}>
                   {editingId === null ? 'Registrar asistencia' : 'Guardar cambios'}
                 </button>
-                <button className="secondary-button" type="button" onClick={discardChanges}>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={discardChanges}
+                  disabled={isSaving}
+                >
                   Descartar cambios
                 </button>
               </div>
@@ -333,6 +354,11 @@ const AsistenciaPage = ({
           </section>
         ) : (
           <section className="students-panel" aria-labelledby="attendance-list-title">
+            {validationMessage && (
+              <p className="assignment-validation" role="alert">
+                {validationMessage}
+              </p>
+            )}
             <div className="students-list-heading">
               <div>
                 <h2 id="attendance-list-title">Lista de registros</h2>

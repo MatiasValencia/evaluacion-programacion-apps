@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
 import type { Student } from './AlumnosPage'
@@ -17,7 +17,8 @@ type AssignmentForm = {
 type AsignaturasPageProps = {
   students: Student[]
   assignments: Assignment[]
-  setAssignments: Dispatch<SetStateAction<Assignment[]>>
+  onAssignmentSave: (assignment: Assignment) => Promise<void>
+  onAssignmentDelete: (assignmentId: string) => Promise<void>
   onLogout: () => void
 }
 
@@ -27,7 +28,8 @@ const studentFullName = (student: Student) =>
 const AsignaturasPage = ({
   students,
   assignments,
-  setAssignments,
+  onAssignmentSave,
+  onAssignmentDelete,
   onLogout,
 }: AsignaturasPageProps) => {
   const navigate = useNavigate()
@@ -37,6 +39,7 @@ const AsignaturasPage = ({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [validationMessage, setValidationMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const openNewForm = () => {
     setForm({ nombre: '', studentIds: [] })
@@ -60,8 +63,9 @@ const AsignaturasPage = ({
     setValidationMessage('')
   }
 
-  const saveAssignment = (event: FormEvent<HTMLFormElement>) => {
+  const saveAssignment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSaving) return
     const nombre = form.nombre.trim()
 
     if (!nombre) {
@@ -74,20 +78,24 @@ const AsignaturasPage = ({
       return
     }
 
-    if (editingId === null) {
-      setAssignments((currentAssignments) => [
-        ...currentAssignments,
-        { id: crypto.randomUUID(), nombre, studentIds: form.studentIds },
-      ])
-    } else {
-      setAssignments((currentAssignments) =>
-        currentAssignments.map((assignment) =>
-          assignment.id === editingId ? { ...form, nombre, id: editingId } : assignment,
-        ),
-      )
+    const assignment: Assignment = {
+      id: editingId ?? crypto.randomUUID(),
+      nombre,
+      studentIds: form.studentIds,
     }
 
-    discardChanges()
+    setIsSaving(true)
+    try {
+      await onAssignmentSave(assignment)
+      discardChanges()
+    } catch (error: unknown) {
+      console.error('No se pudo guardar la asignatura en Firebase.', error)
+      setValidationMessage(
+        error instanceof Error ? error.message : 'No se pudo guardar la asignatura.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const toggleStudent = (studentId: number) => {
@@ -100,12 +108,17 @@ const AsignaturasPage = ({
     setValidationMessage('')
   }
 
-  const deleteAssignment = (id: string) => {
-    setAssignments((currentAssignments) =>
-      currentAssignments.filter((assignment) => assignment.id !== id),
-    )
-    setConfirmingDeleteId(null)
-    if (expandedId === id) setExpandedId(null)
+  const deleteAssignment = async (id: string) => {
+    try {
+      await onAssignmentDelete(id)
+      setConfirmingDeleteId(null)
+      if (expandedId === id) setExpandedId(null)
+    } catch (error: unknown) {
+      console.error('No se pudo eliminar la asignatura en Firebase.', error)
+      setValidationMessage(
+        error instanceof Error ? error.message : 'No se pudo eliminar la asignatura.',
+      )
+    }
   }
 
   return (
@@ -187,10 +200,15 @@ const AsignaturasPage = ({
                 </p>
               )}
               <div className="student-form-actions">
-                <button className="primary-button" type="submit">
+                <button className="primary-button" type="submit" disabled={isSaving}>
                   {editingId === null ? 'Agregar asignatura' : 'Guardar cambios'}
                 </button>
-                <button className="secondary-button" type="button" onClick={discardChanges}>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={discardChanges}
+                  disabled={isSaving}
+                >
                   Descartar cambios
                 </button>
               </div>
@@ -198,6 +216,11 @@ const AsignaturasPage = ({
           </section>
         ) : (
           <section className="students-panel" aria-labelledby="assignments-list-title">
+            {validationMessage && (
+              <p className="assignment-validation" role="alert">
+                {validationMessage}
+              </p>
+            )}
             <div className="students-list-heading">
               <div>
                 <h2 id="assignments-list-title">Lista de asignaturas</h2>

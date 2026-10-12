@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
 
@@ -25,21 +25,24 @@ const emptyForm: StudentForm = {
 
 type AlumnosPageProps = {
   students: Student[]
-  setStudents: Dispatch<SetStateAction<Student[]>>
-  onStudentDelete: (studentId: number) => void
+  onStudentSave: (student: Student) => Promise<void>
+  onStudentDelete: (studentId: number) => Promise<void>
   onLogout: () => void
 }
 
-const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: AlumnosPageProps) => {
+const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: AlumnosPageProps) => {
   const navigate = useNavigate()
   const [form, setForm] = useState<StudentForm>(emptyForm)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const openNewStudentForm = () => {
     setForm(emptyForm)
     setEditingId(null)
+    setSaveError('')
     setIsFormOpen(true)
   }
 
@@ -49,16 +52,19 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
     setEditingId(id)
     setIsFormOpen(true)
     setConfirmingDeleteId(null)
+    setSaveError('')
   }
 
   const cancelForm = () => {
     setForm(emptyForm)
     setEditingId(null)
     setIsFormOpen(false)
+    setSaveError('')
   }
 
-  const saveStudent = (event: FormEvent<HTMLFormElement>) => {
+  const saveStudent = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSaving) return
 
     const existingStudents = students.filter((student) => student.id !== editingId)
     const duplicatedRut = existingStudents.some(
@@ -75,25 +81,28 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
       return
     }
 
-    if (editingId === null) {
-      setStudents((currentStudents) => [
-        ...currentStudents,
-        { ...form, id: Date.now() },
-      ])
-    } else {
-      setStudents((currentStudents) =>
-        currentStudents.map((student) =>
-          student.id === editingId ? { ...form, id: editingId } : student,
-        ),
-      )
+    const student: Student = { ...form, id: editingId ?? Date.now() }
+    setIsSaving(true)
+    try {
+      await onStudentSave(student)
+      cancelForm()
+    } catch (error: unknown) {
+      console.error('No se pudo guardar el alumno en Firebase.', error)
+      setSaveError(error instanceof Error ? error.message : 'No se pudo guardar el alumno.')
+    } finally {
+      setIsSaving(false)
     }
-
-    cancelForm()
   }
 
-  const deleteStudent = (id: number) => {
-    onStudentDelete(id)
-    setConfirmingDeleteId(null)
+  const deleteStudent = async (id: number) => {
+    try {
+      await onStudentDelete(id)
+      setConfirmingDeleteId(null)
+      setSaveError('')
+    } catch (error: unknown) {
+      console.error('No se pudo eliminar el alumno en Firebase.', error)
+      setSaveError(error instanceof Error ? error.message : 'No se pudo eliminar el alumno.')
+    }
   }
 
   const updateField = (field: keyof StudentForm, value: string) => {
@@ -125,6 +134,7 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
             <h2 id="student-form-title">
               {editingId === null ? 'Datos del alumno' : 'Actualiza los datos del alumno'}
             </h2>
+            {saveError && <p className="assignment-validation" role="alert">{saveError}</p>}
             <form className="student-form" onSubmit={saveStudent}>
               <label>
                 Nombres
@@ -193,10 +203,15 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
               </label>
 
               <div className="student-form-actions">
-                <button className="primary-button" type="submit">
+                <button className="primary-button" type="submit" disabled={isSaving}>
                   {editingId === null ? 'Agregar alumno' : 'Guardar cambios'}
                 </button>
-                <button className="secondary-button" type="button" onClick={cancelForm}>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={cancelForm}
+                  disabled={isSaving}
+                >
                   Cancelar
                 </button>
               </div>
@@ -204,6 +219,7 @@ const AlumnosPage = ({ students, setStudents, onStudentDelete, onLogout }: Alumn
           </section>
         ) : (
           <section className="students-panel" aria-labelledby="students-list-title">
+            {saveError && <p className="assignment-validation" role="alert">{saveError}</p>}
             <div className="students-list-heading">
               <div>
                 <h2 id="students-list-title">Lista de alumnos</h2>
