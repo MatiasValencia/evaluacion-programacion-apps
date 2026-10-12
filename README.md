@@ -1,4 +1,4 @@
-# Evaluación Prufodis
+# Evaluación Programación de Aplicaciones - Gestión de Alumnos PRUFODIS Universidad Central de Chile
 
 Aplicación React para administrar alumnos, asignaturas, asistencias y evaluaciones. Los datos se sincronizan en tiempo real con Cloud Firestore para que los administradores autorizados accedan desde distintos dispositivos.
 
