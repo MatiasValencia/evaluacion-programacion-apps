@@ -63,6 +63,7 @@ const AsistenciaPage = ({
   const navigate = useNavigate()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [deleteConfirmationStep, setDeleteConfirmationStep] = useState(1)
@@ -369,119 +370,171 @@ const AsistenciaPage = ({
               </button>
             </div>
 
-            {records.length === 0 ? (
-              <div className="students-empty-state">
-                <p>Aún no hay registros de asistencia.</p>
-                <span>Registra una clase para comenzar a llevar el control de asistencia.</span>
-              </div>
-            ) : (
-              <ul className="students-list">
-                {records.map((record) => {
-                  const isExpanded = expandedId === record.id
-                  const presentStudents = record.students.filter((student) => student.present)
-                  const absentStudents = record.students.filter((student) => !student.present)
+            <ul className="students-list attendance-assignment-list">
+              {assignments.map((assignment) => {
+                const assignmentRecords = records.filter(
+                  (record) => record.assignmentId === assignment.id,
+                )
+                const isAssignmentExpanded = expandedAssignmentId === assignment.id
 
-                  return (
-                    <li className="assignment-row" key={record.id}>
-                      <div className="assignment-row-heading">
-                        <button
-                          className="assignment-expand-button"
-                          aria-expanded={isExpanded}
-                          onClick={() => setExpandedId(isExpanded ? null : record.id)}
-                        >
-                          <span className={`assignment-chevron ${isExpanded ? 'expanded' : ''}`} aria-hidden="true">
-                            ›
-                          </span>
-                          <span>
-                            {record.assignmentName} · {record.date} · {record.startTime}–{record.endTime}
-                          </span>
-                        </button>
-                        <div className="student-actions">
-                          {confirmingDeleteId === record.id ? (
-                            <div className="student-delete-confirmation" role="group" aria-label="Confirmar eliminación">
-                              <span>
-                                {deleteConfirmationStep === 1
-                                  ? '¿Eliminar este registro?'
-                                  : 'Confirmación final: ¿eliminar definitivamente?'}
-                              </span>
-                              <button
-                                className="student-action-button student-delete-button"
-                                onClick={() => {
-                                  if (deleteConfirmationStep === 1) {
-                                    setDeleteConfirmationStep(2)
-                                  } else {
-                                    deleteRecord(record.id)
-                                  }
-                                }}
-                              >
-                                {deleteConfirmationStep === 1 ? 'Continuar' : 'Sí, eliminar'}
-                              </button>
-                              <button
-                                className="student-action-button"
-                                onClick={() => {
-                                  setConfirmingDeleteId(null)
-                                  setDeleteConfirmationStep(1)
-                                }}
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                className="student-action-button"
-                                aria-label={`Editar asistencia de ${record.assignmentName} del ${record.date}`}
-                                onClick={() => openEditForm(record)}
-                              >
-                                Editar
-                              </button>
-                              <button
-                                className="student-action-button student-delete-button"
-                                aria-label={`Eliminar asistencia de ${record.assignmentName} del ${record.date}`}
-                                onClick={() => {
-                                  setConfirmingDeleteId(record.id)
-                                  setDeleteConfirmationStep(1)
-                                }}
-                              >
-                                Eliminar
-                              </button>
-                            </>
-                          )}
-                        </div>
+                return (
+                  <li className="attendance-assignment-row" key={assignment.id}>
+                    <button
+                      className="assignment-expand-button attendance-assignment-toggle"
+                      aria-expanded={isAssignmentExpanded}
+                      onClick={() =>
+                        setExpandedAssignmentId(isAssignmentExpanded ? null : assignment.id)
+                      }
+                    >
+                      <span
+                        className={`assignment-chevron ${isAssignmentExpanded ? 'expanded' : ''}`}
+                        aria-hidden="true"
+                      >
+                        ›
+                      </span>
+                      <span>{assignment.nombre}</span>
+                      <span className="attendance-record-count">
+                        {assignmentRecords.length}{' '}
+                        {assignmentRecords.length === 1 ? 'registro' : 'registros'}
+                      </span>
+                    </button>
+                    {isAssignmentExpanded && (
+                      <div className="attendance-assignment-content">
+                        {assignmentRecords.length === 0 ? (
+                          <p className="attendance-assignment-empty">No hay registros</p>
+                        ) : (
+                          <ul className="attendance-record-list">
+                            {assignmentRecords.map((record) => {
+                              const isExpanded = expandedId === record.id
+                              const presentStudents = record.students.filter(
+                                (student) => student.present,
+                              )
+                              const absentStudents = record.students.filter(
+                                (student) => !student.present,
+                              )
+
+                              return (
+                                <li className="attendance-record-row" key={record.id}>
+                                  <div className="assignment-row-heading">
+                                    <button
+                                      className="assignment-expand-button"
+                                      aria-expanded={isExpanded}
+                                      onClick={() =>
+                                        setExpandedId(isExpanded ? null : record.id)
+                                      }
+                                    >
+                                      <span
+                                        className={`assignment-chevron ${isExpanded ? 'expanded' : ''}`}
+                                        aria-hidden="true"
+                                      >
+                                        ›
+                                      </span>
+                                      <span>
+                                        {record.date} · {record.startTime}–{record.endTime}
+                                      </span>
+                                    </button>
+                                    <div className="student-actions">
+                                      {confirmingDeleteId === record.id ? (
+                                        <div
+                                          className="student-delete-confirmation"
+                                          role="group"
+                                          aria-label="Confirmar eliminación"
+                                        >
+                                          <span>
+                                            {deleteConfirmationStep === 1
+                                              ? '¿Eliminar este registro?'
+                                              : 'Confirmación final: ¿eliminar definitivamente?'}
+                                          </span>
+                                          <button
+                                            className="student-action-button student-delete-button"
+                                            onClick={() => {
+                                              if (deleteConfirmationStep === 1) {
+                                                setDeleteConfirmationStep(2)
+                                              } else {
+                                                deleteRecord(record.id)
+                                              }
+                                            }}
+                                          >
+                                            {deleteConfirmationStep === 1
+                                              ? 'Continuar'
+                                              : 'Sí, eliminar'}
+                                          </button>
+                                          <button
+                                            className="student-action-button"
+                                            onClick={() => {
+                                              setConfirmingDeleteId(null)
+                                              setDeleteConfirmationStep(1)
+                                            }}
+                                          >
+                                            Cancelar
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <button
+                                            className="student-action-button"
+                                            aria-label={`Editar asistencia de ${record.assignmentName} del ${record.date}`}
+                                            onClick={() => openEditForm(record)}
+                                          >
+                                            Editar
+                                          </button>
+                                          <button
+                                            className="student-action-button student-delete-button"
+                                            aria-label={`Eliminar asistencia de ${record.assignmentName} del ${record.date}`}
+                                            onClick={() => {
+                                              setConfirmingDeleteId(record.id)
+                                              setDeleteConfirmationStep(1)
+                                            }}
+                                          >
+                                            Eliminar
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {isExpanded && (
+                                    <div className="assignment-students attendance-details">
+                                      <div>
+                                        <h3>Alumnos presentes ({presentStudents.length})</h3>
+                                        {presentStudents.length === 0 ? (
+                                          <p>No hay alumnos presentes.</p>
+                                        ) : (
+                                          <ul>
+                                            {presentStudents.map((student) => (
+                                              <li key={student.studentId}>
+                                                {student.studentName}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </div>
+                                      <div>
+                                        <h3>Alumnos ausentes ({absentStudents.length})</h3>
+                                        {absentStudents.length === 0 ? (
+                                          <p>No hay alumnos ausentes.</p>
+                                        ) : (
+                                          <ul>
+                                            {absentStudents.map((student) => (
+                                              <li key={student.studentId}>
+                                                {student.studentName}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
                       </div>
-                      {isExpanded && (
-                        <div className="assignment-students attendance-details">
-                          <div>
-                            <h3>Alumnos presentes ({presentStudents.length})</h3>
-                            {presentStudents.length === 0 ? (
-                              <p>No hay alumnos presentes.</p>
-                            ) : (
-                              <ul>
-                                {presentStudents.map((student) => (
-                                  <li key={student.studentId}>{student.studentName}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                          <div>
-                            <h3>Alumnos ausentes ({absentStudents.length})</h3>
-                            {absentStudents.length === 0 ? (
-                              <p>No hay alumnos ausentes.</p>
-                            ) : (
-                              <ul>
-                                {absentStudents.map((student) => (
-                                  <li key={student.studentId}>{student.studentName}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
           </section>
         )}
       </main>

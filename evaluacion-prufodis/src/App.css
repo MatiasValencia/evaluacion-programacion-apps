@@ -1093,6 +1093,48 @@
   border-top: 1px solid rgba(148, 163, 184, 0.18);
 }
 
+.attendance-assignment-row {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.attendance-assignment-toggle {
+  width: 100%;
+}
+
+.attendance-record-count {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 0.86rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.attendance-assignment-content {
+  padding: 0 0 12px 29px;
+}
+
+.attendance-assignment-empty {
+  margin: 0;
+  padding: 14px 18px;
+  border-left: 2px solid rgba(96, 165, 250, 0.5);
+  color: #cbd5e1;
+}
+
+.attendance-record-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attendance-record-row {
+  padding: 14px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.attendance-record-row:first-child {
+  border-top: 0;
+}
+
 .assignment-row-heading {
   display: flex;
   align-items: center;
