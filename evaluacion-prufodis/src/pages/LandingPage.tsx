@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FirebaseError } from 'firebase/app'
-import { hasConfiguredAdministrators, isFirebaseConfigured } from '../firebase'
+import { hasConfiguredUsers, isFirebaseConfigured } from '../firebase'
 
 type LandingPageProps = {
   onLogin: (email: string, password: string) => Promise<void>
@@ -171,7 +171,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
           <div className="login-copy">
             <p className="eyebrow">Acceso</p>
             <h2>Inicia sesión</h2>
-            <p>Accede al panel de administración para gestionar alumnos, asignaturas y seguimiento.</p>
+            <p>Accede para consultar la información académica o administrar los datos autorizados.</p>
           </div>
 
           <form className="login-form" onSubmit={handleLogin}>
@@ -181,10 +181,10 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                 <code> .env.local</code> y reinicia la aplicación.
               </p>
             )}
-            {isFirebaseConfigured && !hasConfiguredAdministrators && (
+            {isFirebaseConfigured && !hasConfiguredUsers && (
               <p className="login-message login-error" role="alert">
-                No hay UID de administradores configurados. Añádelos a{' '}
-                <code>VITE_FIREBASE_ADMIN_UIDS</code>.
+                No hay UID de usuarios configurados. Añade los UID autorizados a{' '}
+                <code>VITE_FIREBASE_ADMIN_UIDS</code> o <code>VITE_FIREBASE_READONLY_UIDS</code>.
               </p>
             )}
             {loginError && (
@@ -216,7 +216,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
 
             <button
               type="submit"
-              disabled={isSubmitting || !isFirebaseConfigured || !hasConfiguredAdministrators}
+              disabled={isSubmitting || !isFirebaseConfigured || !hasConfiguredUsers}
             >
               {isSubmitting ? 'Iniciando sesión…' : 'Entrar'}
             </button>

@@ -30,28 +30,32 @@ const firebaseApp = isFirebaseConfigured
 export const firebaseAuth = firebaseApp === null ? null : getAuth(firebaseApp)
 export const firebaseDb = firebaseApp === null ? null : getFirestore(firebaseApp)
 
-const adminUids = (import.meta.env.VITE_FIREBASE_ADMIN_UIDS ?? '')
-  .split(',')
-  .map((uid) => uid.trim())
-  .filter(Boolean)
+const parseUidList = (value: string | undefined) =>
+  (value ?? '')
+    .split(',')
+    .map((uid) => uid.trim())
+    .filter(Boolean)
 
-export const hasConfiguredAdministrators = adminUids.length > 0
+const adminUids = parseUidList(import.meta.env.VITE_FIREBASE_ADMIN_UIDS)
+const readOnlyUids = parseUidList(import.meta.env.VITE_FIREBASE_READONLY_UIDS)
 
 export const isAdminUid = (uid: string) => adminUids.includes(uid)
+export const isReadOnlyUid = (uid: string) => readOnlyUids.includes(uid)
+export const hasConfiguredUsers = adminUids.length > 0 || readOnlyUids.length > 0
 
-export const authenticateAdmin = async (email: string, password: string): Promise<User> => {
+export const authenticateUser = async (email: string, password: string): Promise<User> => {
   if (firebaseAuth === null) {
     throw new Error('Firebase no está configurado. Completa las variables de entorno.')
   }
 
-  if (!hasConfiguredAdministrators) {
-    throw new Error('No hay administradores configurados. Añade sus UID a la configuración.')
+  if (!hasConfiguredUsers) {
+    throw new Error('No hay usuarios configurados. Añade sus UID a la configuración.')
   }
 
   const credential = await signInWithEmailAndPassword(firebaseAuth, email, password)
-  if (!isAdminUid(credential.user.uid)) {
+  if (!isAdminUid(credential.user.uid) && !isReadOnlyUid(credential.user.uid)) {
     await signOut(firebaseAuth)
-    throw new Error('La cuenta inició sesión, pero no tiene permisos de administrador.')
+    throw new Error('La cuenta inició sesión, pero no tiene permisos para usar esta aplicación.')
   }
 
   return credential.user

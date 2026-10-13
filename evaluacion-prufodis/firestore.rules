@@ -2,29 +2,38 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isConfiguredAdmin() {
+    function isAdmin() {
       return request.auth != null
-        && request.auth.uid in ['S50r4CXrkMXxaiP7schIno93LvO2'];
+        && request.auth.uid == 'S50r4CXrkMXxaiP7schIno93LvO2';
     }
 
-    match /students/{studentId} {
-      allow read, write: if isConfiguredAdmin();
+    function isCommonUser() {
+      return request.auth != null
+        && request.auth.uid == 'rWwzcfpIHiSsqn9pwW7iUKK7zxW2';
     }
 
-    match /assignments/{assignmentId} {
-      allow read, write: if isConfiguredAdmin();
+    match /students/{documentId} {
+      allow read: if isAdmin() || isCommonUser();
+      allow write: if isAdmin();
     }
 
-    match /attendanceRecords/{recordId} {
-      allow read, write: if isConfiguredAdmin();
+    match /assignments/{documentId} {
+      allow read: if isAdmin() || isCommonUser();
+      allow write: if isAdmin();
     }
 
-    match /evaluationGrades/{gradeId} {
-      allow read, write: if isConfiguredAdmin();
+    match /attendanceRecords/{documentId} {
+      allow read: if isAdmin() || isCommonUser();
+      allow write: if isAdmin();
+    }
+
+    match /evaluationGrades/{documentId} {
+      allow read: if isAdmin() || isCommonUser();
+      allow write: if isAdmin();
     }
 
     match /metadata/{documentId} {
-      allow read, write: if isConfiguredAdmin();
+      allow read, write: if isAdmin();
     }
 
     match /{document=**} {

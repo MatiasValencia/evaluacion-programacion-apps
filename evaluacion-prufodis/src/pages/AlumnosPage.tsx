@@ -25,12 +25,19 @@ const emptyForm: StudentForm = {
 
 type AlumnosPageProps = {
   students: Student[]
+  canEdit: boolean
   onStudentSave: (student: Student) => Promise<void>
   onStudentDelete: (studentId: number) => Promise<void>
   onLogout: () => void
 }
 
-const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: AlumnosPageProps) => {
+const AlumnosPage = ({
+  students,
+  canEdit,
+  onStudentSave,
+  onStudentDelete,
+  onLogout,
+}: AlumnosPageProps) => {
   const [form, setForm] = useState<StudentForm>(emptyForm)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null)
@@ -47,6 +54,7 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
   )
 
   const openNewStudentForm = () => {
+    if (!canEdit) return
     setForm(emptyForm)
     setEditingId(null)
     setSaveError('')
@@ -54,6 +62,7 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
   }
 
   const openEditStudentForm = (student: Student) => {
+    if (!canEdit) return
     const { id, ...studentForm } = student
     setForm(studentForm)
     setEditingId(id)
@@ -71,7 +80,7 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
 
   const saveStudent = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (isSaving) return
+    if (!canEdit || isSaving) return
 
     const existingStudents = students.filter((student) => student.id !== editingId)
     const duplicatedRut = existingStudents.some(
@@ -102,6 +111,7 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
   }
 
   const deleteStudent = async (id: number) => {
+    if (!canEdit) return
     try {
       await onStudentDelete(id)
       setConfirmingDeleteId(null)
@@ -123,12 +133,12 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <div>
-            <p className="eyebrow">Administración</p>
-            <h1>{isFormOpen ? (editingId === null ? 'Agregar alumno' : 'Editar alumno') : 'Alumnos'}</h1>
+            <p className="eyebrow">{canEdit ? 'Administración' : 'Consulta académica'}</p>
+            <h1>{canEdit && isFormOpen ? (editingId === null ? 'Agregar alumno' : 'Editar alumno') : 'Alumnos'}</h1>
           </div>
         </header>
 
-        {isFormOpen ? (
+        {canEdit && isFormOpen ? (
           <section className="students-panel" aria-labelledby="student-form-title">
             <h2 id="student-form-title">
               {editingId === null ? 'Datos del alumno' : 'Actualiza los datos del alumno'}
@@ -222,11 +232,13 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
             <div className="students-list-heading">
               <div>
                 <h2 id="students-list-title">Lista de alumnos</h2>
-                <p>Administra los datos de los alumnos registrados.</p>
+                <p>{canEdit ? 'Administra los datos de los alumnos registrados.' : 'Consulta los datos de los alumnos registrados.'}</p>
               </div>
-              <button className="primary-button" onClick={openNewStudentForm}>
-                <span aria-hidden="true">+</span> Agregar alumno
-              </button>
+              {canEdit && (
+                <button className="primary-button" onClick={openNewStudentForm}>
+                  <span aria-hidden="true">+</span> Agregar alumno
+                </button>
+              )}
             </div>
 
             {students.length > 0 && (
@@ -246,7 +258,11 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
             {students.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay alumnos registrados.</p>
-                <span>Agrega un alumno para comenzar a gestionar sus datos.</span>
+                <span>
+                  {canEdit
+                    ? 'Agrega un alumno para comenzar a gestionar sus datos.'
+                    : 'No hay alumnos disponibles para consultar.'}
+                </span>
               </div>
             ) : filteredStudents.length === 0 ? (
               <div className="students-empty-state" role="status">
@@ -260,7 +276,7 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
                     <span className="student-name">
                       {student.nombres} {student.primerApellido} {student.segundoApellido}
                     </span>
-                    <div className="student-actions">
+                    {canEdit && <div className="student-actions">
                       {confirmingDeleteId === student.id ? (
                         <div className="student-delete-confirmation" role="group" aria-label={`Confirmar eliminación de ${student.nombres}`}>
                           <span>¿Eliminar a este alumno?</span>
@@ -305,7 +321,7 @@ const AlumnosPage = ({ students, onStudentSave, onStudentDelete, onLogout }: Alu
                           </button>
                         </>
                       )}
-                    </div>
+                    </div>}
                   </li>
                 ))}
               </ul>

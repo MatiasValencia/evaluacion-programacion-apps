@@ -23,6 +23,7 @@ type AsignaturasPageProps = {
   students: Student[]
   assignments: Assignment[]
   grades: EvaluationGrade[]
+  canEdit: boolean
   onAssignmentSave: (assignment: Assignment) => Promise<void>
   onAssignmentDelete: (assignmentId: string) => Promise<void>
   onLogout: () => void
@@ -57,6 +58,7 @@ const AsignaturasPage = ({
   students,
   assignments,
   grades,
+  canEdit,
   onAssignmentSave,
   onAssignmentDelete,
   onLogout,
@@ -86,6 +88,7 @@ const AsignaturasPage = ({
   })
 
   const openNewForm = () => {
+    if (!canEdit) return
     setForm({ nombre: '', studentIds: [], gradeCount: '1', gradeWeights: ['100'] })
     setEditingId(null)
     setValidationMessage('')
@@ -93,6 +96,7 @@ const AsignaturasPage = ({
   }
 
   const openEditForm = (assignment: Assignment) => {
+    if (!canEdit) return
     const gradeCount = getStoredGradeCount(assignment, grades)
     setForm({
       nombre: assignment.nombre,
@@ -117,7 +121,7 @@ const AsignaturasPage = ({
 
   const saveAssignment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (isSaving) return
+    if (!canEdit || isSaving) return
     const nombre = form.nombre.trim()
 
     if (!nombre) {
@@ -211,6 +215,7 @@ const AsignaturasPage = ({
   }
 
   const deleteAssignment = async (id: string) => {
+    if (!canEdit) return
     try {
       await onAssignmentDelete(id)
       setConfirmingDeleteId(null)
@@ -230,7 +235,7 @@ const AsignaturasPage = ({
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <div>
-            <p className="eyebrow">Administración</p>
+            <p className="eyebrow">{canEdit ? 'Administración' : 'Consulta académica'}</p>
             <h1>
               {isFormOpen
                 ? editingId === null
@@ -241,7 +246,7 @@ const AsignaturasPage = ({
           </div>
         </header>
 
-        {isFormOpen ? (
+        {canEdit && isFormOpen ? (
           <section className="students-panel" aria-labelledby="assignment-form-title">
             <h2 id="assignment-form-title">
               {editingId === null ? 'Datos de la asignatura' : 'Actualiza la asignatura'}
@@ -377,11 +382,13 @@ const AsignaturasPage = ({
             <div className="students-list-heading">
               <div>
                 <h2 id="assignments-list-title">Lista de asignaturas</h2>
-                <p>Administra las asignaturas y los alumnos vinculados.</p>
+                <p>{canEdit ? 'Administra las asignaturas y los alumnos vinculados.' : 'Consulta las asignaturas y los alumnos vinculados.'}</p>
               </div>
-              <button className="primary-button" onClick={openNewForm}>
-                <span aria-hidden="true">+</span> Agregar asignatura
-              </button>
+              {canEdit && (
+                <button className="primary-button" onClick={openNewForm}>
+                  <span aria-hidden="true">+</span> Agregar asignatura
+                </button>
+              )}
             </div>
 
             {assignments.length > 0 && (
@@ -410,7 +417,11 @@ const AsignaturasPage = ({
             {assignments.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay asignaturas registradas.</p>
-                <span>Agrega una asignatura para comenzar a gestionar sus alumnos.</span>
+                <span>
+                  {canEdit
+                    ? 'Agrega una asignatura para comenzar a gestionar sus alumnos.'
+                    : 'No hay asignaturas disponibles para consultar.'}
+                </span>
               </div>
             ) : filteredAssignments.length === 0 ? (
               <div className="students-empty-state" role="status">
@@ -438,7 +449,7 @@ const AsignaturasPage = ({
                           </span>
                           <span>{assignment.nombre}</span>
                         </button>
-                        <div className="student-actions">
+                        {canEdit && <div className="student-actions">
                           {confirmingDeleteId === assignment.id ? (
                             <div
                               className="student-delete-confirmation"
@@ -477,7 +488,7 @@ const AsignaturasPage = ({
                               </button>
                             </>
                           )}
-                        </div>
+                        </div>}
                       </div>
                       {isExpanded && (
                         <div className="assignment-students" aria-label={`Alumnos de ${assignment.nombre}`}>

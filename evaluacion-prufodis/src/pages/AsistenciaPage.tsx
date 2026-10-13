@@ -37,6 +37,7 @@ type AsistenciaPageProps = {
   students: Student[]
   assignments: Assignment[]
   records: AttendanceRecord[]
+  canEdit: boolean
   onRecordSave: (record: AttendanceRecord) => Promise<void>
   onRecordDelete: (recordId: string) => Promise<void>
   onLogout: () => void
@@ -154,6 +155,7 @@ const AsistenciaPage = ({
   students,
   assignments,
   records,
+  canEdit,
   onRecordSave,
   onRecordDelete,
   onLogout,
@@ -216,6 +218,7 @@ const AsistenciaPage = ({
   const todayDate = formatToday()
 
   const openNewForm = () => {
+    if (!canEdit) return
     setForm({
       assignmentId: '',
       date: formatToday(),
@@ -229,6 +232,7 @@ const AsistenciaPage = ({
   }
 
   const openEditForm = (record: AttendanceRecord) => {
+    if (!canEdit) return
     const { id, ...recordForm } = record
     setForm({
       ...recordForm,
@@ -266,7 +270,7 @@ const AsistenciaPage = ({
 
   const saveAttendance = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (isSaving) return
+    if (!canEdit || isSaving) return
 
     if (!form.assignmentId) {
       setValidationMessage('Selecciona una asignatura.')
@@ -331,6 +335,7 @@ const AsistenciaPage = ({
   }
 
   const deleteRecord = async (id: string) => {
+    if (!canEdit) return
     try {
       await onRecordDelete(id)
       setConfirmingDeleteId(null)
@@ -351,12 +356,12 @@ const AsistenciaPage = ({
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <div>
-            <p className="eyebrow">Administración</p>
+            <p className="eyebrow">{canEdit ? 'Administración' : 'Consulta académica'}</p>
             <h1>{isFormOpen ? (editingId === null ? 'Registrar asistencia' : 'Editar asistencia') : 'Asistencia'}</h1>
           </div>
         </header>
 
-        {isFormOpen ? (
+        {canEdit && isFormOpen ? (
           <section className="students-panel" aria-labelledby="attendance-form-title">
             <h2 id="attendance-form-title">
               {editingId === null ? 'Datos de la clase' : 'Actualiza el registro de asistencia'}
@@ -489,11 +494,13 @@ const AsistenciaPage = ({
             <div className="students-list-heading">
               <div>
                 <h2 id="attendance-list-title">Lista de registros</h2>
-                <p>Consulta y administra la asistencia de cada clase.</p>
+                <p>{canEdit ? 'Consulta y administra la asistencia de cada clase.' : 'Consulta la asistencia de cada clase.'}</p>
               </div>
-              <button className="primary-button" onClick={openNewForm}>
-                <span aria-hidden="true">+</span> Registrar asistencia
-              </button>
+              {canEdit && (
+                <button className="primary-button" onClick={openNewForm}>
+                  <span aria-hidden="true">+</span> Registrar asistencia
+                </button>
+              )}
             </div>
 
             <div className="list-filters attendance-filters">
@@ -627,7 +634,11 @@ const AsistenciaPage = ({
             {assignments.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay asignaturas registradas.</p>
-                <span>Registra una asignatura antes de consultar la asistencia.</span>
+                <span>
+                  {canEdit
+                    ? 'Registra una asignatura antes de consultar la asistencia.'
+                    : 'No hay asignaturas disponibles para consultar.'}
+                </span>
               </div>
             ) : filteredAttendance.length === 0 ? (
               <div className="students-empty-state" role="status">
@@ -701,7 +712,7 @@ const AsistenciaPage = ({
                                         {record.date} · {record.startTime}–{record.endTime}
                                       </span>
                                     </button>
-                                    <div className="student-actions">
+                                    {canEdit && <div className="student-actions">
                                       {confirmingDeleteId === record.id ? (
                                         <div
                                           className="student-delete-confirmation"
@@ -758,7 +769,7 @@ const AsistenciaPage = ({
                                           </button>
                                         </>
                                       )}
-                                    </div>
+                                    </div>}
                                   </div>
                                   {isExpanded && (
                                     <div className="assignment-students attendance-details">

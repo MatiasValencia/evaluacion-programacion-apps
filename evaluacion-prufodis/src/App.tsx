@@ -9,7 +9,13 @@ import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
 import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
-import { authenticateAdmin, firebaseAuth, firebaseDb, isAdminUid } from './firebase'
+import {
+  authenticateUser,
+  firebaseAuth,
+  firebaseDb,
+  isAdminUid,
+  isReadOnlyUid,
+} from './firebase'
 import {
   deleteRecord,
   deleteStudentAndUnlinkFromAssignments,
@@ -26,7 +32,7 @@ function App() {
   const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>([])
   const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(firebaseAuth !== null)
-  const [loadedAdminUid, setLoadedAdminUid] = useState<string | null>(null)
+  const [loadedUserUid, setLoadedUserUid] = useState<string | null>(null)
   const [dataError, setDataError] = useState<string | null>(null)
   const [dataRetry, setDataRetry] = useState(0)
 
@@ -37,7 +43,7 @@ function App() {
       firebaseAuth,
       (user) => {
         setAuthenticatedUser(user)
-        setLoadedAdminUid(null)
+        setLoadedUserUid(null)
         setDataError(null)
         setIsAuthLoading(false)
       },
@@ -50,7 +56,7 @@ function App() {
   }, [])
 
   const handleLogin = async (email: string, password: string) => {
-    const user = await authenticateAdmin(email, password)
+    const user = await authenticateUser(email, password)
     setAuthenticatedUser(user)
   }
 
@@ -64,10 +70,12 @@ function App() {
   }
 
   const isAdmin = authenticatedUser !== null && isAdminUid(authenticatedUser.uid)
-  const adminUid = isAdmin ? authenticatedUser.uid : null
+  const isReadOnly = authenticatedUser !== null && isReadOnlyUid(authenticatedUser.uid)
+  const isAuthorized = isAdmin || isReadOnly
+  const authorizedUid = isAuthorized ? authenticatedUser?.uid ?? null : null
 
   useEffect(() => {
-    if (adminUid === null || firebaseDb === null) return
+    if (authorizedUid === null || firebaseDb === null) return
 
     let isActive = true
     let hasStartedInitialization = false
@@ -83,6 +91,11 @@ function App() {
       if (receivedCollections.size !== 4 || hasStartedInitialization) return
       hasStartedInitialization = true
 
+      if (!isAdmin) {
+        setLoadedUserUid(authorizedUid)
+        return
+      }
+
       void initializeFirestoreData()
         .then((data) => {
           if (!isActive) return
@@ -90,7 +103,7 @@ function App() {
           setAssignments(data.assignments)
           setAttendanceRecords(data.attendanceRecords)
           setEvaluationGrades(data.evaluationGrades)
-          setLoadedAdminUid(adminUid)
+          setLoadedUserUid(authorizedUid)
         })
         .catch((error: unknown) => {
           handleDataError(
@@ -146,9 +159,9 @@ function App() {
       isActive = false
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
-  }, [adminUid, dataRetry])
+  }, [authorizedUid, isAdmin, dataRetry])
 
-  const isDataLoading = isAdmin && loadedAdminUid !== adminUid && dataError === null
+  const isDataLoading = isAuthorized && loadedUserUid !== authorizedUid && dataError === null
 
   if (isAuthLoading) {
     return (
@@ -158,7 +171,7 @@ function App() {
     )
   }
 
-  if (isAdmin && isDataLoading) {
+  if (isAuthorized && isDataLoading) {
     return (
       <main className="auth-loading" role="status">
         Sincronizando los datos…
@@ -166,7 +179,7 @@ function App() {
     )
   }
 
-  if (isAdmin && dataError !== null) {
+  if (isAuthorized && dataError !== null) {
     return (
       <main className="auth-loading" role="alert">
         <p>No se pudieron cargar los datos de Firebase: {dataError}</p>
@@ -174,7 +187,7 @@ function App() {
           className="secondary-button"
           onClick={() => {
             setDataError(null)
-            setLoadedAdminUid(null)
+            setLoadedUserUid(null)
             setDataRetry((retry) => retry + 1)
           }}
         >
@@ -193,7 +206,7 @@ function App() {
         <Route
           path="/"
           element={
-            isAdmin ? <Navigate to="/menu" replace /> : <LandingPage onLogin={handleLogin} />
+            isAuthorized ? <Navigate to="/menu" replace /> : <LandingPage onLogin={handleLogin} />
           }
         />
         <Route
@@ -209,7 +222,7 @@ function App() {
         <Route
           path="/menu"
           element={
-            isAdmin ? (
+            isAuthorized ? (
               <Outlet />
             ) : authenticatedUser ? (
               <Navigate to="/acceso-denegado" replace />
@@ -235,6 +248,7 @@ function App() {
             element={
               <AlumnosPage
                 students={students}
+                canEdit={isAdmin}
                 onStudentSave={(student) => saveRecord('students', student)}
                 onStudentDelete={deleteStudentAndUnlinkFromAssignments}
                 onLogout={handleLogout}
@@ -248,6 +262,7 @@ function App() {
                 students={students}
                 assignments={assignments}
                 grades={evaluationGrades}
+                canEdit={isAdmin}
                 onAssignmentSave={(assignment) => saveRecord('assignments', assignment)}
                 onAssignmentDelete={(id) => deleteRecord('assignments', id)}
                 onLogout={handleLogout}
@@ -261,6 +276,7 @@ function App() {
                 students={students}
                 assignments={assignments}
                 records={attendanceRecords}
+                canEdit={isAdmin}
                 onRecordSave={(record) => saveRecord('attendanceRecords', record)}
                 onRecordDelete={(id) => deleteRecord('attendanceRecords', id)}
                 onLogout={handleLogout}
@@ -274,6 +290,7 @@ function App() {
                 students={students}
                 assignments={assignments}
                 grades={evaluationGrades}
+                canEdit={isAdmin}
                 onGradesSave={saveEvaluationGrades}
                 onLogout={handleLogout}
               />

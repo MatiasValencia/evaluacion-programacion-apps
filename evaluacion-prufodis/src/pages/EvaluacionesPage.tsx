@@ -17,6 +17,7 @@ type EvaluacionesPageProps = {
   students: Student[]
   assignments: Assignment[]
   grades: EvaluationGrade[]
+  canEdit: boolean
   onGradesSave: (
     previousGrades: EvaluationGrade[],
     nextGrades: EvaluationGrade[],
@@ -70,6 +71,7 @@ const EvaluacionesPage = ({
   students,
   assignments,
   grades,
+  canEdit,
   onGradesSave,
   onLogout,
 }: EvaluacionesPageProps) => {
@@ -115,6 +117,7 @@ const EvaluacionesPage = ({
   )
 
   const openRegistration = () => {
+    if (!canEdit) return
     const initialGrades = grades.map((grade) => ({ ...grade }))
     setBaseGrades(initialGrades)
     setDraftGrades(initialGrades.map((grade) => ({ ...grade })))
@@ -135,7 +138,7 @@ const EvaluacionesPage = ({
   }
 
   const saveChanges = async () => {
-    if (isSaving) return
+    if (!canEdit || isSaving) return
     if (inputTarget) {
       setValidationMessage('Presiona Enter para guardar la nota antes de guardar los cambios.')
       return
@@ -156,6 +159,7 @@ const EvaluacionesPage = ({
   }
 
   const startAddingGrade = (studentId: number, gradeNumber: number) => {
+    if (!canEdit) return
     setInputTarget({ studentId, gradeNumber, gradeId: null })
     setGradeInput('')
     setValidationMessage('')
@@ -163,6 +167,7 @@ const EvaluacionesPage = ({
   }
 
   const startEditingGrade = (grade: EvaluationGrade) => {
+    if (!canEdit) return
     const studentGrades = draftGrades.filter(
       (item) =>
         item.assignmentId === grade.assignmentId && item.studentId === grade.studentId,
@@ -184,6 +189,7 @@ const EvaluacionesPage = ({
   }
 
   const saveGradeInput = () => {
+    if (!canEdit) return
     if (!inputTarget || !isValidGrade(gradeInput)) {
       setValidationMessage('Ingresa una nota decimal entre 1,0 y 7,0.')
       return
@@ -225,6 +231,7 @@ const EvaluacionesPage = ({
   }
 
   const deleteGrade = (gradeId: string) => {
+    if (!canEdit) return
     setDraftGrades((currentGrades) => currentGrades.filter((grade) => grade.id !== gradeId))
     setActiveGradeId(null)
   }
@@ -236,12 +243,12 @@ const EvaluacionesPage = ({
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <div>
-            <p className="eyebrow">Administración</p>
-            <h1>{isRegistering ? 'Registrar notas' : 'Evaluaciones'}</h1>
+            <p className="eyebrow">{canEdit ? 'Administración' : 'Consulta académica'}</p>
+            <h1>{canEdit && isRegistering ? 'Registrar notas' : 'Evaluaciones'}</h1>
           </div>
         </header>
 
-        {isRegistering ? (
+        {canEdit && isRegistering ? (
           <section className="students-panel" aria-labelledby="grade-entry-title">
             <div className="students-list-heading">
               <div>
@@ -275,8 +282,14 @@ const EvaluacionesPage = ({
                 <div className="students-empty-state">
                   <p>Aún no hay asignaturas registradas.</p>
                   <span>
-                    <NavLink to="/menu/asignaturas">Registra una asignatura</NavLink> antes de
-                    ingresar notas.
+                    {canEdit ? (
+                      <>
+                        <NavLink to="/menu/asignaturas">Registra una asignatura</NavLink> antes de
+                        ingresar notas.
+                      </>
+                    ) : (
+                      'No hay asignaturas disponibles para consultar.'
+                    )}
                   </span>
                 </div>
               ) : null
@@ -337,7 +350,7 @@ const EvaluacionesPage = ({
                                     }}
                                     onKeyDown={handleGradeInputKeyDown}
                                   />
-                                ) : grade ? (
+                                ) : grade && canEdit ? (
                                   <div className="grade-control">
                                     <button
                                       className={`grade-chip ${grade.value < 4 ? 'failing' : 'passing'}`}
@@ -367,7 +380,13 @@ const EvaluacionesPage = ({
                                       </div>
                                     )}
                                   </div>
-                                ) : (
+                                ) : grade ? (
+                                  <span
+                                    className={`grade-chip ${grade.value < 4 ? 'failing' : 'passing'}`}
+                                  >
+                                    {formatGrade(grade.value)}
+                                  </span>
+                                ) : canEdit ? (
                                   <button
                                     className="grade-add-button"
                                     aria-label={`Agregar nota ${gradeNumber} a ${studentFullName(student)}`}
@@ -375,6 +394,8 @@ const EvaluacionesPage = ({
                                   >
                                     +
                                   </button>
+                                ) : (
+                                  '—'
                                 )}
                               </td>
                             )
@@ -392,14 +413,16 @@ const EvaluacionesPage = ({
                 {validationMessage}
               </p>
             )}
-            <div className="student-form-actions grade-form-actions">
-              <button className="primary-button" onClick={saveChanges} disabled={isSaving}>
-                Guardar notas
-              </button>
-              <button className="secondary-button" onClick={discardChanges} disabled={isSaving}>
-                Descartar cambios
-              </button>
-            </div>
+            {canEdit && (
+              <div className="student-form-actions grade-form-actions">
+                <button className="primary-button" onClick={saveChanges} disabled={isSaving}>
+                  Guardar notas
+                </button>
+                <button className="secondary-button" onClick={discardChanges} disabled={isSaving}>
+                  Descartar cambios
+                </button>
+              </div>
+            )}
           </section>
         ) : (
           <section className="students-panel" aria-labelledby="evaluations-list-title">
@@ -408,9 +431,11 @@ const EvaluacionesPage = ({
                 <h2 id="evaluations-list-title">Lista de evaluaciones</h2>
                 <p>Consulta las notas y promedios por asignatura.</p>
               </div>
-              <button className="primary-button" onClick={openRegistration}>
-                <span aria-hidden="true">+</span> Registrar notas
-              </button>
+              {canEdit && (
+                <button className="primary-button" onClick={openRegistration}>
+                  <span aria-hidden="true">+</span> Registrar notas
+                </button>
+              )}
             </div>
 
             {grades.length > 0 && (
@@ -439,7 +464,11 @@ const EvaluacionesPage = ({
             {grades.length === 0 ? (
               <div className="students-empty-state">
                 <p>Aún no hay evaluaciones registradas.</p>
-                <span>Registra notas para consultar los resultados por asignatura.</span>
+                <span>
+                  {canEdit
+                    ? 'Registra notas para consultar los resultados por asignatura.'
+                    : 'No hay evaluaciones disponibles para consultar.'}
+                </span>
               </div>
             ) : filteredAssignments.length === 0 ? (
               <div className="students-empty-state" role="status">
