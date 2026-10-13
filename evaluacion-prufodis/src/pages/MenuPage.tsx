@@ -46,7 +46,7 @@ const MenuPage = ({
 
   return (
     <div className="dashboard-shell">
-      <DashboardSidebar />
+      <DashboardSidebar onLogout={onLogout} />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
@@ -54,9 +54,6 @@ const MenuPage = ({
             <p className="eyebrow">Panel principal</p>
             <h1>Dashboard</h1>
           </div>
-          <button className="secondary-button" onClick={onLogout}>
-            Cerrar sesión
-          </button>
         </header>
 
         <section className="dashboard-summary">

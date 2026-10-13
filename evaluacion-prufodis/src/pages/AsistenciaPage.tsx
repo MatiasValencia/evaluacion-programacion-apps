@@ -244,21 +244,13 @@ const AsistenciaPage = ({
 
   return (
     <div className="dashboard-shell">
-      <DashboardSidebar />
+      <DashboardSidebar onLogout={onLogout} />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <div>
             <p className="eyebrow">Administración</p>
             <h1>{isFormOpen ? (editingId === null ? 'Registrar asistencia' : 'Editar asistencia') : 'Asistencia'}</h1>
-          </div>
-          <div className="dashboard-header-actions">
-            <button className="secondary-button students-back-button" onClick={() => navigate('/menu')}>
-              Volver al dashboard
-            </button>
-            <button className="secondary-button" onClick={onLogout}>
-              Cerrar sesión
-            </button>
           </div>
         </header>
 

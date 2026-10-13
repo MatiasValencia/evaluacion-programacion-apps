@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
 import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
@@ -33,7 +32,6 @@ const AsignaturasPage = ({
   onAssignmentDelete,
   onLogout,
 }: AsignaturasPageProps) => {
-  const navigate = useNavigate()
   const [form, setForm] = useState<AssignmentForm>({ nombre: '', studentIds: [] })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -135,7 +133,7 @@ const AsignaturasPage = ({
 
   return (
     <div className="dashboard-shell">
-      <DashboardSidebar />
+      <DashboardSidebar onLogout={onLogout} />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
@@ -148,17 +146,6 @@ const AsignaturasPage = ({
                   : 'Editar asignatura'
                 : 'Asignaturas'}
             </h1>
-          </div>
-          <div className="dashboard-header-actions">
-            <button
-              className="secondary-button students-back-button"
-              onClick={() => navigate('/menu')}
-            >
-              Volver al dashboard
-            </button>
-            <button className="secondary-button" onClick={onLogout}>
-              Cerrar sesión
-            </button>
           </div>
         </header>
 

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import DashboardSidebar from '../components/DashboardSidebar'
 import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
@@ -42,7 +42,6 @@ const EvaluacionesPage = ({
   onGradesSave,
   onLogout,
 }: EvaluacionesPageProps) => {
-  const navigate = useNavigate()
   const [isRegistering, setIsRegistering] = useState(false)
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('')
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null)
@@ -179,24 +178,13 @@ const EvaluacionesPage = ({
 
   return (
     <div className="dashboard-shell">
-      <DashboardSidebar />
+      <DashboardSidebar onLogout={onLogout} />
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <div>
             <p className="eyebrow">Administración</p>
             <h1>{isRegistering ? 'Registrar notas' : 'Evaluaciones'}</h1>
-          </div>
-          <div className="dashboard-header-actions">
-            <button
-              className="secondary-button students-back-button"
-              onClick={() => navigate('/menu')}
-            >
-              Volver al dashboard
-            </button>
-            <button className="secondary-button" onClick={onLogout}>
-              Cerrar sesión
-            </button>
           </div>
         </header>
 
