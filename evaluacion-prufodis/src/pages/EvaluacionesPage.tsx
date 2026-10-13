@@ -10,6 +10,7 @@ export type EvaluationGrade = {
   assignmentId: string
   studentId: number
   value: number
+  gradeNumber?: number
 }
 
 type EvaluacionesPageProps = {
@@ -25,6 +26,7 @@ type EvaluacionesPageProps = {
 
 type GradeInputTarget = {
   studentId: number
+  gradeNumber: number
   gradeId: string | null
 }
 
@@ -33,7 +35,36 @@ const studentFullName = (student: Student) =>
 
 const formatGrade = (value: number) => value.toFixed(1).replace('.', ',')
 
+const formatWeight = (value: number) =>
+  `${value.toLocaleString('es-CL', { maximumFractionDigits: 2 })}%`
+
 const isValidGrade = (value: string) => /^(?:[1-6][,.]\d|7[,.]0)$/.test(value.trim())
+
+const getGradeNumber = (grade: EvaluationGrade, studentGrades: EvaluationGrade[]) =>
+  grade.gradeNumber ?? studentGrades.indexOf(grade) + 1
+
+const getAssignmentGradeCount = (
+  assignment: Assignment,
+  grades: EvaluationGrade[],
+) => {
+  if (assignment.gradeCount !== undefined) return assignment.gradeCount
+
+  const assignmentGrades = grades.filter((grade) => grade.assignmentId === assignment.id)
+  return Math.max(
+    1,
+    ...assignmentGrades.map((grade) => {
+      const studentGrades = assignmentGrades.filter(
+        (item) => item.studentId === grade.studentId,
+      )
+      return getGradeNumber(grade, studentGrades)
+    }),
+  )
+}
+
+const getAssignmentWeights = (assignment: Assignment, gradeCount: number) =>
+  assignment.gradeWeights?.length === gradeCount
+    ? assignment.gradeWeights
+    : Array.from({ length: gradeCount }, () => 100 / gradeCount)
 
 const EvaluacionesPage = ({
   students,
@@ -60,6 +91,17 @@ const EvaluacionesPage = ({
       .find((assignment) => assignment.id === selectedAssignmentId)
       ?.studentIds.includes(student.id),
   )
+  const selectedAssignment = assignments.find(
+    (assignment) => assignment.id === selectedAssignmentId,
+  )
+  const selectedGradeCount =
+    selectedAssignment === undefined
+      ? 0
+      : getAssignmentGradeCount(selectedAssignment, draftGrades)
+  const selectedWeights =
+    selectedAssignment === undefined
+      ? []
+      : getAssignmentWeights(selectedAssignment, selectedGradeCount)
 
   const filteredAssignments = assignments.filter(
     (assignment) =>
@@ -113,15 +155,23 @@ const EvaluacionesPage = ({
     }
   }
 
-  const startAddingGrade = (studentId: number) => {
-    setInputTarget({ studentId, gradeId: null })
+  const startAddingGrade = (studentId: number, gradeNumber: number) => {
+    setInputTarget({ studentId, gradeNumber, gradeId: null })
     setGradeInput('')
     setValidationMessage('')
     setActiveGradeId(null)
   }
 
   const startEditingGrade = (grade: EvaluationGrade) => {
-    setInputTarget({ studentId: grade.studentId, gradeId: grade.id })
+    const studentGrades = draftGrades.filter(
+      (item) =>
+        item.assignmentId === grade.assignmentId && item.studentId === grade.studentId,
+    )
+    setInputTarget({
+      studentId: grade.studentId,
+      gradeNumber: getGradeNumber(grade, studentGrades),
+      gradeId: grade.id,
+    })
     setGradeInput(formatGrade(grade.value))
     setValidationMessage('')
     setActiveGradeId(null)
@@ -143,7 +193,9 @@ const EvaluacionesPage = ({
     if (inputTarget.gradeId) {
       setDraftGrades((currentGrades) =>
         currentGrades.map((grade) =>
-          grade.id === inputTarget.gradeId ? { ...grade, value } : grade,
+          grade.id === inputTarget.gradeId
+            ? { ...grade, value, gradeNumber: inputTarget.gradeNumber }
+            : grade,
         ),
       )
     } else {
@@ -154,6 +206,7 @@ const EvaluacionesPage = ({
           assignmentId: selectedAssignmentId,
           studentId: inputTarget.studentId,
           value,
+          gradeNumber: inputTarget.gradeNumber,
         },
       ])
     }
@@ -233,77 +286,104 @@ const EvaluacionesPage = ({
                 <span>Vincula estudiantes desde la página de Asignaturas.</span>
               </div>
             ) : (
-              <div className="grade-entry-list">
-                {assignedStudents.map((student) => {
-                  const studentGrades = draftGrades.filter(
-                    (grade) =>
-                      grade.assignmentId === selectedAssignmentId &&
-                      grade.studentId === student.id,
-                  )
+              <div className="evaluation-table-wrapper grade-entry-table-wrapper">
+                <table className="evaluation-table grade-entry-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Estudiante</th>
+                      {Array.from({ length: selectedGradeCount }, (_, index) => (
+                        <th scope="col" key={index}>
+                          Nota {index + 1}
+                          <span className="grade-weight-label">
+                            {formatWeight(selectedWeights[index])}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assignedStudents.map((student) => {
+                      const studentGrades = draftGrades.filter(
+                        (grade) =>
+                          grade.assignmentId === selectedAssignmentId &&
+                          grade.studentId === student.id,
+                      )
 
-                  return (
-                    <div className="grade-entry-row" key={student.id}>
-                      <span className="student-name">{studentFullName(student)}</span>
-                      <div className="grade-entry-actions">
-                        {studentGrades.map((grade) => (
-                          <div className="grade-control" key={grade.id}>
-                            <button
-                              className={`grade-chip ${grade.value < 4 ? 'failing' : 'passing'}`}
-                              aria-expanded={activeGradeId === grade.id}
-                              onClick={() =>
-                                setActiveGradeId(
-                                  activeGradeId === grade.id ? null : grade.id,
-                                )
-                              }
-                            >
-                              {formatGrade(grade.value)}
-                            </button>
-                            {activeGradeId === grade.id && (
-                              <div className="grade-options">
-                                <button
-                                  className="student-action-button"
-                                  onClick={() => startEditingGrade(grade)}
-                                >
-                                  Editar nota
-                                </button>
-                                <button
-                                  className="student-action-button student-delete-button"
-                                  onClick={() => deleteGrade(grade.id)}
-                                >
-                                  Eliminar nota
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        <button
-                          className="grade-add-button"
-                          aria-label={`Agregar nota a ${studentFullName(student)}`}
-                          onClick={() => startAddingGrade(student.id)}
-                        >
-                          +
-                        </button>
-                        {inputTarget?.studentId === student.id && (
-                          <input
-                            autoFocus
-                            className="grade-input"
-                            aria-label={
-                              inputTarget.gradeId === null ? 'Nueva nota' : 'Editar nota'
-                            }
-                            inputMode="decimal"
-                            placeholder="Ej. 5,5"
-                            value={gradeInput}
-                            onChange={(event) => {
-                              setGradeInput(event.target.value)
-                              setValidationMessage('')
-                            }}
-                            onKeyDown={handleGradeInputKeyDown}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                      return (
+                        <tr key={student.id}>
+                          <th scope="row">{studentFullName(student)}</th>
+                          {Array.from({ length: selectedGradeCount }, (_, index) => {
+                            const gradeNumber = index + 1
+                            const grade = studentGrades.find(
+                              (item) => getGradeNumber(item, studentGrades) === gradeNumber,
+                            )
+                            const isEditingThisCell =
+                              inputTarget?.studentId === student.id &&
+                              inputTarget.gradeNumber === gradeNumber
+
+                            return (
+                              <td key={gradeNumber}>
+                                {isEditingThisCell ? (
+                                  <input
+                                    autoFocus
+                                    className="grade-input"
+                                    aria-label={`Nota ${gradeNumber} de ${studentFullName(student)}`}
+                                    inputMode="decimal"
+                                    placeholder="Ej. 5,5"
+                                    value={gradeInput}
+                                    onChange={(event) => {
+                                      setGradeInput(event.target.value)
+                                      setValidationMessage('')
+                                    }}
+                                    onKeyDown={handleGradeInputKeyDown}
+                                  />
+                                ) : grade ? (
+                                  <div className="grade-control">
+                                    <button
+                                      className={`grade-chip ${grade.value < 4 ? 'failing' : 'passing'}`}
+                                      aria-expanded={activeGradeId === grade.id}
+                                      onClick={() =>
+                                        setActiveGradeId(
+                                          activeGradeId === grade.id ? null : grade.id,
+                                        )
+                                      }
+                                    >
+                                      {formatGrade(grade.value)}
+                                    </button>
+                                    {activeGradeId === grade.id && (
+                                      <div className="grade-options">
+                                        <button
+                                          className="student-action-button"
+                                          onClick={() => startEditingGrade(grade)}
+                                        >
+                                          Editar nota
+                                        </button>
+                                        <button
+                                          className="student-action-button student-delete-button"
+                                          onClick={() => deleteGrade(grade.id)}
+                                        >
+                                          Eliminar nota
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="grade-add-button"
+                                    aria-label={`Agregar nota ${gradeNumber} a ${studentFullName(student)}`}
+                                    onClick={() => startAddingGrade(student.id, gradeNumber)}
+                                  >
+                                    +
+                                  </button>
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
 
@@ -407,7 +487,22 @@ const EvaluacionesPage = ({
                               <thead>
                                 <tr>
                                   <th scope="col">Estudiante</th>
-                                  <th scope="col">Notas</th>
+                                  {Array.from(
+                                    { length: getAssignmentGradeCount(assignment, grades) },
+                                    (_, index) => (
+                                      <th scope="col" key={index}>
+                                        Nota {index + 1}
+                                        <span className="grade-weight-label">
+                                          {formatWeight(
+                                            getAssignmentWeights(
+                                              assignment,
+                                              getAssignmentGradeCount(assignment, grades),
+                                            )[index],
+                                          )}
+                                        </span>
+                                      </th>
+                                    ),
+                                  )}
                                   <th scope="col">Promedio</th>
                                 </tr>
                               </thead>
@@ -418,33 +513,59 @@ const EvaluacionesPage = ({
                                       grade.assignmentId === assignment.id &&
                                       grade.studentId === student.id,
                                   )
+                                  const gradeCount = getAssignmentGradeCount(
+                                    assignment,
+                                    grades,
+                                  )
+                                  const assignmentWeights = getAssignmentWeights(
+                                    assignment,
+                                    gradeCount,
+                                  )
+                                  const gradesByNumber = Array.from(
+                                    { length: gradeCount },
+                                    (_, index) =>
+                                      studentGrades.find(
+                                        (grade) =>
+                                          getGradeNumber(grade, studentGrades) === index + 1,
+                                      ),
+                                  )
+                                  const completedWeight = gradesByNumber.reduce(
+                                    (total, grade, index) =>
+                                      total + (grade ? assignmentWeights[index] : 0),
+                                    0,
+                                  )
                                   const average =
-                                    studentGrades.length === 0
+                                    completedWeight === 0
                                       ? null
-                                      : studentGrades.reduce(
-                                          (total, grade) => total + grade.value,
+                                      : gradesByNumber.reduce(
+                                          (total, grade, index) =>
+                                            total +
+                                            (grade?.value ?? 0) * assignmentWeights[index],
                                           0,
-                                        ) / studentGrades.length
+                                        ) / completedWeight
 
                                   return (
                                     <tr key={student.id}>
                                       <th scope="row">{studentFullName(student)}</th>
-                                      <td>
-                                        {studentGrades.length === 0 ? (
-                                          '—'
-                                        ) : (
-                                          <div className="evaluation-grade-list">
-                                            {studentGrades.map((grade) => (
+                                      {Array.from({ length: gradeCount }, (_, index) => {
+                                        const grade = studentGrades.find(
+                                          (item) =>
+                                            getGradeNumber(item, studentGrades) === index + 1,
+                                        )
+                                        return (
+                                          <td key={index}>
+                                            {grade ? (
                                               <span
                                                 className={`grade-chip ${grade.value < 4 ? 'failing' : 'passing'}`}
-                                                key={grade.id}
                                               >
                                                 {formatGrade(grade.value)}
                                               </span>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </td>
+                                            ) : (
+                                              '—'
+                                            )}
+                                          </td>
+                                        )
+                                      })}
                                       <td>
                                         {average === null
                                           ? '—'

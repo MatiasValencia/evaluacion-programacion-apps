@@ -247,6 +247,7 @@ function App() {
               <AsignaturasPage
                 students={students}
                 assignments={assignments}
+                grades={evaluationGrades}
                 onAssignmentSave={(assignment) => saveRecord('assignments', assignment)}
                 onAssignmentDelete={(id) => deleteRecord('assignments', id)}
                 onLogout={handleLogout}

@@ -984,6 +984,64 @@
   margin-top: 24px;
 }
 
+.assignment-grade-settings {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.assignment-name-field input[name='gradeCount'],
+.assignment-weight-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(2, 8, 23, 0.55);
+  color: #f8fafc;
+}
+
+.assignment-name-field input[name='gradeCount']:focus,
+.assignment-weight-field input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.assignment-weight-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.assignment-weight-picker legend {
+  margin-bottom: 8px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.assignment-weight-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 12px;
+}
+
+.assignment-weight-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+}
+
+.assignment-weight-hint {
+  margin-top: 8px;
+  color: #93c5fd;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
 .assignment-name-field {
   display: flex;
   flex-direction: column;
@@ -1279,6 +1337,35 @@
   margin-top: 24px;
 }
 
+.grade-entry-table-wrapper {
+  margin-left: 0;
+}
+
+.grade-entry-table {
+  min-width: max-content;
+}
+
+.grade-entry-table th:first-child {
+  min-width: 200px;
+}
+
+.grade-weight-label {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.grade-entry-table td {
+  min-width: 105px;
+}
+
+.grade-entry-table .grade-options {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .grade-entry-row {
   display: flex;
   align-items: center;
@@ -1435,7 +1522,8 @@ button.grade-chip {
   }
 
   .attendance-datetime-fields,
-  .attendance-details {
+  .attendance-details,
+  .assignment-grade-settings {
     grid-template-columns: 1fr;
   }
 
