@@ -2,21 +2,27 @@ import { useState, type FormEvent } from 'react'
 import DashboardSidebar from '../components/DashboardSidebar'
 import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
+import type { EvaluationGrade } from './EvaluacionesPage'
 
 export type Assignment = {
   id: string
   nombre: string
   studentIds: number[]
+  gradeCount?: number
+  gradeWeights?: number[]
 }
 
 type AssignmentForm = {
   nombre: string
   studentIds: number[]
+  gradeCount: string
+  gradeWeights: string[]
 }
 
 type AsignaturasPageProps = {
   students: Student[]
   assignments: Assignment[]
+  grades: EvaluationGrade[]
   onAssignmentSave: (assignment: Assignment) => Promise<void>
   onAssignmentDelete: (assignmentId: string) => Promise<void>
   onLogout: () => void
@@ -25,14 +31,42 @@ type AsignaturasPageProps = {
 const studentFullName = (student: Student) =>
   `${student.nombres} ${student.primerApellido} ${student.segundoApellido}`.trim()
 
+const equalWeights = (count: number) => {
+  const weight = Number((100 / count).toFixed(6))
+  const weights = Array.from({ length: count }, () => weight)
+  weights[count - 1] = Number((100 - weight * (count - 1)).toFixed(6))
+  return weights.map(String)
+}
+
+const getStoredGradeCount = (assignment: Assignment, grades: EvaluationGrade[]) => {
+  if (assignment.gradeCount !== undefined) return assignment.gradeCount
+
+  const assignmentGrades = grades.filter((grade) => grade.assignmentId === assignment.id)
+  const numberedCount = assignmentGrades.reduce(
+    (maximum, grade) => Math.max(maximum, grade.gradeNumber ?? 0),
+    0,
+  )
+  const studentCounts = new Map<number, number>()
+  assignmentGrades.forEach((grade) => {
+    studentCounts.set(grade.studentId, (studentCounts.get(grade.studentId) ?? 0) + 1)
+  })
+  return Math.max(1, numberedCount, ...studentCounts.values())
+}
+
 const AsignaturasPage = ({
   students,
   assignments,
+  grades,
   onAssignmentSave,
   onAssignmentDelete,
   onLogout,
 }: AsignaturasPageProps) => {
-  const [form, setForm] = useState<AssignmentForm>({ nombre: '', studentIds: [] })
+  const [form, setForm] = useState<AssignmentForm>({
+    nombre: '',
+    studentIds: [],
+    gradeCount: '1',
+    gradeWeights: ['100'],
+  })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -52,14 +86,22 @@ const AsignaturasPage = ({
   })
 
   const openNewForm = () => {
-    setForm({ nombre: '', studentIds: [] })
+    setForm({ nombre: '', studentIds: [], gradeCount: '1', gradeWeights: ['100'] })
     setEditingId(null)
     setValidationMessage('')
     setIsFormOpen(true)
   }
 
   const openEditForm = (assignment: Assignment) => {
-    setForm({ nombre: assignment.nombre, studentIds: assignment.studentIds })
+    const gradeCount = getStoredGradeCount(assignment, grades)
+    setForm({
+      nombre: assignment.nombre,
+      studentIds: assignment.studentIds,
+      gradeCount: String(gradeCount),
+      gradeWeights: assignment.gradeWeights?.length === gradeCount
+        ? assignment.gradeWeights.map(String)
+        : equalWeights(gradeCount),
+    })
     setEditingId(assignment.id)
     setValidationMessage('')
     setConfirmingDeleteId(null)
@@ -68,7 +110,7 @@ const AsignaturasPage = ({
 
   const discardChanges = () => {
     setIsFormOpen(false)
-    setForm({ nombre: '', studentIds: [] })
+    setForm({ nombre: '', studentIds: [], gradeCount: '1', gradeWeights: ['100'] })
     setEditingId(null)
     setValidationMessage('')
   }
@@ -88,10 +130,60 @@ const AsignaturasPage = ({
       return
     }
 
+    const gradeCount = Number(form.gradeCount)
+    if (!Number.isSafeInteger(gradeCount) || gradeCount < 1) {
+      setValidationMessage('Indica una cantidad válida de notas (al menos 1).')
+      return
+    }
+
+    const gradeWeights = form.gradeWeights.map((weight) =>
+      weight.trim() === '' ? Number.NaN : Number(weight.trim().replace(',', '.')),
+    )
+    if (
+      gradeWeights.length !== gradeCount ||
+      gradeWeights.some((weight) => !Number.isFinite(weight) || weight < 0 || weight > 100)
+    ) {
+      setValidationMessage('Cada ponderación debe ser un porcentaje válido entre 0 y 100.')
+      return
+    }
+
+    const totalWeight = gradeWeights.reduce((total, weight) => total + weight, 0)
+    if (Math.abs(totalWeight - 100) > 0.00000001) {
+      setValidationMessage(
+        `Las ponderaciones deben sumar 100%. Actualmente suman ${totalWeight.toLocaleString('es-CL')}%.`,
+      )
+      return
+    }
+
+    const currentAssignment = assignments.find((item) => item.id === editingId)
+    const previousGradeCount =
+      currentAssignment === undefined ? 1 : getStoredGradeCount(currentAssignment, grades)
+    if (gradeCount < previousGradeCount) {
+      const gradesByStudent = new Map<number, EvaluationGrade[]>()
+      grades
+        .filter((grade) => grade.assignmentId === editingId)
+        .forEach((grade) => {
+          const studentGrades = gradesByStudent.get(grade.studentId) ?? []
+          studentGrades.push(grade)
+          gradesByStudent.set(grade.studentId, studentGrades)
+        })
+      const wouldHideGrades = [...gradesByStudent.values()].some((studentGrades) =>
+        studentGrades.some((grade, index) => (grade.gradeNumber ?? index + 1) > gradeCount),
+      )
+      if (wouldHideGrades) {
+        setValidationMessage(
+          'No se puede reducir la cantidad de notas porque hay evaluaciones registradas en esas posiciones.',
+        )
+        return
+      }
+    }
+
     const assignment: Assignment = {
       id: editingId ?? crypto.randomUUID(),
       nombre,
       studentIds: form.studentIds,
+      gradeCount,
+      gradeWeights,
     }
 
     setIsSaving(true)
@@ -169,7 +261,69 @@ const AsignaturasPage = ({
                 />
               </label>
 
-              <fieldset className="assignment-student-picker">
+                      <div className="assignment-grade-settings">
+                        <label className="assignment-name-field">
+                          Cantidad de notas
+                          <input
+                            type="number"
+                            name="gradeCount"
+                            min="1"
+                            step="1"
+                            required
+                            value={form.gradeCount}
+                            onChange={(event) => {
+                              const nextCount = event.target.value
+                              const parsedCount = Number(nextCount)
+                              setForm((currentForm) => ({
+                                ...currentForm,
+                                gradeCount: nextCount,
+                                gradeWeights:
+                                  Number.isSafeInteger(parsedCount) && parsedCount > 0
+                                    ? equalWeights(parsedCount)
+                                    : currentForm.gradeWeights,
+                              }))
+                              setValidationMessage('')
+                            }}
+                          />
+                        </label>
+                        <fieldset className="assignment-weight-picker">
+                          <legend>Ponderación de cada nota (%)</legend>
+                          <div className="assignment-weight-list">
+                            {form.gradeWeights.map((weight, index) => (
+                              <label className="assignment-weight-field" key={index}>
+                                Nota {index + 1}
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  aria-label={`Ponderación de la nota ${index + 1}`}
+                                  value={weight}
+                                  onChange={(event) => {
+                                    const nextWeights = [...form.gradeWeights]
+                                    nextWeights[index] = event.target.value
+                                    setForm((currentForm) => ({
+                                      ...currentForm,
+                                      gradeWeights: nextWeights,
+                                    }))
+                                    setValidationMessage('')
+                                  }}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                          <p className="assignment-weight-hint">
+                            Total:{' '}
+                            {form.gradeWeights
+                              .reduce((total, weight) => {
+                                const parsedWeight = Number(weight.trim().replace(',', '.'))
+                                return Number.isFinite(parsedWeight) ? total + parsedWeight : total
+                              }, 0)
+                              .toLocaleString('es-CL')}
+                            %
+                          </p>
+                        </fieldset>
+                      </div>
+
+                      <fieldset className="assignment-student-picker">
                 <legend>Alumnos de la asignatura</legend>
                 {students.length === 0 ? (
                   <p className="assignment-no-students">
@@ -327,6 +481,13 @@ const AsignaturasPage = ({
                       </div>
                       {isExpanded && (
                         <div className="assignment-students" aria-label={`Alumnos de ${assignment.nombre}`}>
+                          <p>
+                            {getStoredGradeCount(assignment, grades)} notas · Ponderaciones:{' '}
+                            {(assignment.gradeWeights ??
+                              equalWeights(getStoredGradeCount(assignment, grades)).map(Number))
+                              .map((weight) => `${weight}%`)
+                              .join(', ')}
+                          </p>
                           <h3>Alumnos vinculados</h3>
                           {assignedStudents.length === 0 ? (
                             <p>No hay alumnos vinculados a esta asignatura.</p>
