@@ -19,7 +19,19 @@ export type AttendanceRecord = {
   }[]
 }
 
-type AttendanceForm = Omit<AttendanceRecord, 'id' | 'assignmentName'>
+type TimeParts = {
+  hour: string
+  minute: string
+  period: 'AM' | 'PM'
+}
+
+type AttendanceForm = Omit<
+  AttendanceRecord,
+  'id' | 'assignmentName' | 'startTime' | 'endTime'
+> & {
+  startTime: TimeParts
+  endTime: TimeParts
+}
 
 type AsistenciaPageProps = {
   students: Student[]
@@ -56,6 +68,88 @@ const isValidDate = (value: string) => {
 const studentFullName = (student: Student) =>
   `${student.nombres} ${student.primerApellido} ${student.segundoApellido}`.trim()
 
+const emptyTime = (): TimeParts => ({ hour: '', minute: '', period: 'AM' })
+
+const parseStoredTime = (time: string): TimeParts => {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time)
+  if (!match) return emptyTime()
+
+  const hours = Number(match[1])
+  return {
+    hour: String(hours % 12 || 12),
+    minute: match[2],
+    period: hours < 12 ? 'AM' : 'PM',
+  }
+}
+
+const toMinutes = (time: TimeParts) => {
+  if (!/^(?:[1-9]|1[0-2])$/.test(time.hour) || !/^\d{1,2}$/.test(time.minute)) {
+    return null
+  }
+
+  const hour = Number(time.hour)
+  const minute = Number(time.minute)
+  if (minute > 59) return null
+
+  return (hour % 12 + (time.period === 'PM' ? 12 : 0)) * 60 + minute
+}
+
+const toStoredTime = (minutes: number) =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+
+type TimeFieldProps = {
+  label: string
+  name: string
+  value: TimeParts
+  onChange: (value: TimeParts) => void
+}
+
+const TimeField = ({ label, name, value, onChange }: TimeFieldProps) => (
+  <fieldset className="attendance-time-field">
+    <legend>{label}</legend>
+    <div className="attendance-time-controls">
+      <label className="attendance-time-part">
+        <input
+          aria-label={`${label}: hora`}
+          autoComplete="off"
+          inputMode="numeric"
+          maxLength={2}
+          placeholder="HH"
+          required
+          value={value.hour}
+          onChange={(event) => onChange({ ...value, hour: event.target.value })}
+        />
+      </label>
+      <span aria-hidden="true">:</span>
+      <label className="attendance-time-part">
+        <input
+          aria-label={`${label}: minutos`}
+          autoComplete="off"
+          inputMode="numeric"
+          maxLength={2}
+          placeholder="MM"
+          required
+          value={value.minute}
+          onChange={(event) => onChange({ ...value, minute: event.target.value })}
+        />
+      </label>
+      <div className="attendance-period-options" role="group" aria-label={`${label}: AM o PM`}>
+        {(['AM', 'PM'] as const).map((period) => (
+          <label key={period}>
+            <input
+              type="radio"
+              name={`${name}-period`}
+              checked={value.period === period}
+              onChange={() => onChange({ ...value, period })}
+            />
+            {period}
+          </label>
+        ))}
+      </div>
+    </div>
+  </fieldset>
+)
+
 const AsistenciaPage = ({
   students,
   assignments,
@@ -84,8 +178,8 @@ const AsistenciaPage = ({
   const [form, setForm] = useState<AttendanceForm>({
     assignmentId: '',
     date: formatToday(),
-    startTime: '',
-    endTime: '',
+    startTime: emptyTime(),
+    endTime: emptyTime(),
     students: [],
   })
 
@@ -125,8 +219,8 @@ const AsistenciaPage = ({
     setForm({
       assignmentId: '',
       date: formatToday(),
-      startTime: '',
-      endTime: '',
+      startTime: emptyTime(),
+      endTime: emptyTime(),
       students: [],
     })
     setEditingId(null)
@@ -136,7 +230,11 @@ const AsistenciaPage = ({
 
   const openEditForm = (record: AttendanceRecord) => {
     const { id, ...recordForm } = record
-    setForm(recordForm)
+    setForm({
+      ...recordForm,
+      startTime: parseStoredTime(record.startTime),
+      endTime: parseStoredTime(record.endTime),
+    })
     setEditingId(id)
     setValidationMessage('')
     setConfirmingDeleteId(null)
@@ -178,11 +276,13 @@ const AsistenciaPage = ({
       setValidationMessage('Ingresa una fecha válida con formato DD/MM/AAAA.')
       return
     }
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(form.endTime)) {
-      setValidationMessage('Ingresa las horas en formato 24 horas HH:mm.')
+    const startMinutes = toMinutes(form.startTime)
+    const endMinutes = toMinutes(form.endTime)
+    if (startMinutes === null || endMinutes === null) {
+      setValidationMessage('Ingresa una hora válida en formato de 12 horas y selecciona AM o PM.')
       return
     }
-    if (form.endTime <= form.startTime) {
+    if (endMinutes <= startMinutes) {
       setValidationMessage('La hora de fin debe ser posterior a la hora de inicio.')
       return
     }
@@ -199,6 +299,8 @@ const AsistenciaPage = ({
 
     const record: AttendanceRecord = {
       ...form,
+      startTime: toStoredTime(startMinutes),
+      endTime: toStoredTime(endMinutes),
       id: editingId ?? crypto.randomUUID(),
       assignmentName: assignment.nombre,
     }
@@ -298,36 +400,24 @@ const AsistenciaPage = ({
                     }}
                   />
                 </label>
-                <label className="attendance-field">
-                  Hora de inicio (HH:mm)
-                  <input
-                    autoComplete="off"
-                    inputMode="numeric"
-                    maxLength={5}
-                    placeholder="HH:mm"
-                    required
-                    value={form.startTime}
-                    onChange={(event) => {
-                      setForm((currentForm) => ({ ...currentForm, startTime: event.target.value }))
-                      setValidationMessage('')
-                    }}
-                  />
-                </label>
-                <label className="attendance-field">
-                  Hora de fin (HH:mm)
-                  <input
-                    autoComplete="off"
-                    inputMode="numeric"
-                    maxLength={5}
-                    placeholder="HH:mm"
-                    required
-                    value={form.endTime}
-                    onChange={(event) => {
-                      setForm((currentForm) => ({ ...currentForm, endTime: event.target.value }))
-                      setValidationMessage('')
-                    }}
-                  />
-                </label>
+                <TimeField
+                  label="Hora de inicio"
+                  name="start-time"
+                  value={form.startTime}
+                  onChange={(startTime) => {
+                    setForm((currentForm) => ({ ...currentForm, startTime }))
+                    setValidationMessage('')
+                  }}
+                />
+                <TimeField
+                  label="Hora de fin"
+                  name="end-time"
+                  value={form.endTime}
+                  onChange={(endTime) => {
+                    setForm((currentForm) => ({ ...currentForm, endTime }))
+                    setValidationMessage('')
+                  }}
+                />
               </div>
 
               {form.assignmentId && (
