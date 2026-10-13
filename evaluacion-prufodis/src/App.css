@@ -534,7 +534,7 @@
   color: #fca5a5;
   font: inherit;
   font-weight: 600;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 }
