@@ -187,6 +187,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                     <button
                       type="button"
                       className="secondary-button"
+                      disabled={isCreatingAccount}
                       onClick={() => {
                         setRegisterError('')
                         setIsCreatingAccount(false)
@@ -277,16 +278,7 @@ const getLoginErrorMessage = (error: unknown) => {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case 'auth/email-already-in-use':
-      case 'functions/already-exists':
         return 'Este correo ya está registrado.'
-      case 'functions/invalid-argument':
-        return 'Introduce un correo válido y una contraseña de al menos 6 caracteres.'
-      case 'functions/failed-precondition':
-        return 'Cierra la sesión antes de crear una cuenta nueva.'
-      case 'functions/resource-exhausted':
-        return 'Se está creando otra cuenta. Espera un momento e inténtalo de nuevo.'
-      case 'functions/not-found':
-        return 'El servicio de registro no está desplegado en Firebase.'
       case 'auth/invalid-credential':
       case 'auth/user-not-found':
       case 'auth/wrong-password':
@@ -300,8 +292,18 @@ const getLoginErrorMessage = (error: unknown) => {
       case 'auth/network-request-failed':
         return 'No se pudo conectar con Firebase. Comprueba tu conexión e inténtalo de nuevo.'
       case 'auth/operation-not-allowed':
+        return 'El inicio de sesión con correo y contraseña no está habilitado en Firebase.'
+      case 'functions/already-exists':
+        return 'Este correo ya está registrado.'
+      case 'functions/invalid-argument':
+        return 'Introduce un correo válido y una contraseña de al menos 6 caracteres.'
+      case 'functions/resource-exhausted':
+        return 'Se está creando otra cuenta. Inténtalo de nuevo en un momento.'
+      case 'functions/failed-precondition':
+        return 'Cierra la sesión antes de crear una cuenta.'
       case 'functions/unavailable':
-        return 'El acceso con correo y contraseña o el servicio de registro no está habilitado en Firebase.'
+      case 'functions/deadline-exceeded':
+        return 'No se pudo conectar con el servicio de registro. Inténtalo de nuevo.'
       default:
         return 'No se pudo completar la operación. Inténtalo de nuevo.'
     }

@@ -60,7 +60,7 @@ const toHttpsError = (error) => {
 }
 
 export const registerAccount = onCall({ timeoutSeconds: 60 }, async (request) => {
-  if (request.auth !== undefined) {
+  if (request.auth != null) {
     throw new HttpsError('failed-precondition', 'Cierra la sesión antes de crear una cuenta.')
   }
 
