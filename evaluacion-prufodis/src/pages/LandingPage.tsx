@@ -58,7 +58,6 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
           id="landing-navigation"
           aria-label="Navegación principal"
         >
-          <a href="#features" onClick={() => setIsMenuOpen(false)}>Funcionalidades</a>
           <a href="#benefits" onClick={() => setIsMenuOpen(false)}>Ventajas</a>
           <a href="#login" onClick={() => setIsMenuOpen(false)}>Iniciar sesión</a>
         </nav>
@@ -74,15 +73,6 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
               herramientas pensadas para docentes y gestores.
             </p>
 
-            <div className="hero-actions">
-              <a className="primary-button" href="#login">
-                Iniciar sesión
-              </a>
-              <a className="secondary-button" href="#features">
-                Ver funcionalidades
-              </a>
-            </div>
-
             <ul className="stats" aria-label="Estadísticas de la plataforma">
               <li>
                 <strong>1.000+</strong>
@@ -95,60 +85,63 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
             </ul>
           </div>
 
-          <div className="hero-panel" aria-label="Resumen del sistema">
-            <div className="panel-card card-main">
-              <div className="card-header">
-                <span className="dot green" />
-                <span className="dot yellow" />
-                <span className="dot red" />
+          <section id="login" className="login-section hero-login">
+            <div className="login-card">
+              <div className="login-copy">
+                <p className="eyebrow">Acceso</p>
+                <h2>Inicia sesión</h2>
+                <p>Accede para consultar la información académica o administrar los datos autorizados.</p>
               </div>
-              <div className="card-body">
-                <div className="metric">
-                  <span>Promedio general</span>
-                  <strong>6,4</strong>
-                </div>
-                <div className="progress">
-                  <div className="progress-bar" />
-                </div>
-                <div className="mini-grid">
-                  <div>
-                    <small>Asistencia</small>
-                    <strong>92%</strong>
-                  </div>
-                  <div>
-                    <small>Evaluaciones</small>
-                    <strong>8</strong>
-                  </div>
-                </div>
-              </div>
+
+              <form className="login-form" onSubmit={handleLogin}>
+                {!isFirebaseConfigured && (
+                  <p className="login-message login-error" role="alert">
+                    Firebase no está configurado. Completa las variables de entorno del archivo
+                    <code> .env.local</code> y reinicia la aplicación.
+                  </p>
+                )}
+                {isFirebaseConfigured && !hasConfiguredUsers && (
+                  <p className="login-message login-error" role="alert">
+                    No hay UID de usuarios configurados. Añade los UID autorizados a{' '}
+                    <code>VITE_FIREBASE_ADMIN_UIDS</code> o <code>VITE_FIREBASE_READONLY_UIDS</code>.
+                  </p>
+                )}
+                {loginError && (
+                  <p className="login-message login-error" role="alert">
+                    {loginError}
+                  </p>
+                )}
+                <label>
+                  Correo electrónico
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="nombre@ejemplo.com"
+                    autoComplete="email"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Contraseña
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !isFirebaseConfigured || !hasConfiguredUsers}
+                >
+                  {isSubmitting ? 'Iniciando sesión…' : 'Entrar'}
+                </button>
+              </form>
             </div>
-          </div>
-        </section>
-
-        <section id="features" className="features">
-          <div className="section-heading">
-            <p className="eyebrow">Funcionalidades</p>
-            <h2>Todo lo que necesitas para gestionar la vida académica</h2>
-          </div>
-
-          <div className="feature-grid">
-            <article className="feature-card">
-              <h3>Alumnos</h3>
-              <p>Consulta perfiles, historiales y evolución académica de cada estudiante.</p>
-            </article>
-            <article className="feature-card">
-              <h3>Asignaturas</h3>
-              <p>Organiza cursos, docentes y contenidos con una visión clara del plan de estudios.</p>
-            </article>
-            <article className="feature-card">
-              <h3>Evaluaciones</h3>
-              <p>Registra notas, seguimiento de rendimiento y análisis por trimestre o curso.</p>
-            </article>
-            <article className="feature-card">
-              <h3>Asistencias</h3>
-              <p>Controla faltas y presencias con informes rápidos y actualizados en tiempo real.</p>
-            </article>
-          </div>
+          </section>
         </section>
 
         <section id="benefits" className="benefits">
@@ -165,64 +158,6 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
           </ul>
         </section>
       </main>
-
-      <section id="login" className="login-section">
-        <div className="login-card">
-          <div className="login-copy">
-            <p className="eyebrow">Acceso</p>
-            <h2>Inicia sesión</h2>
-            <p>Accede para consultar la información académica o administrar los datos autorizados.</p>
-          </div>
-
-          <form className="login-form" onSubmit={handleLogin}>
-            {!isFirebaseConfigured && (
-              <p className="login-message login-error" role="alert">
-                Firebase no está configurado. Completa las variables de entorno del archivo
-                <code> .env.local</code> y reinicia la aplicación.
-              </p>
-            )}
-            {isFirebaseConfigured && !hasConfiguredUsers && (
-              <p className="login-message login-error" role="alert">
-                No hay UID de usuarios configurados. Añade los UID autorizados a{' '}
-                <code>VITE_FIREBASE_ADMIN_UIDS</code> o <code>VITE_FIREBASE_READONLY_UIDS</code>.
-              </p>
-            )}
-            {loginError && (
-              <p className="login-message login-error" role="alert">
-                {loginError}
-              </p>
-            )}
-            <label>
-              Correo electrónico
-              <input
-                type="email"
-                name="email"
-                placeholder="nombre@ejemplo.com"
-                autoComplete="email"
-                required
-              />
-            </label>
-
-            <label>
-              Contraseña
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                required
-              />
-            </label>
-
-            <button
-              type="submit"
-              disabled={isSubmitting || !isFirebaseConfigured || !hasConfiguredUsers}
-            >
-              {isSubmitting ? 'Iniciando sesión…' : 'Entrar'}
-            </button>
-          </form>
-        </div>
-      </section>
     </div>
   )
 }
