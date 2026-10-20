@@ -13,6 +13,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
   const [registerError, setRegisterError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [isRegisteringAccount, setIsRegisteringAccount] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -39,7 +40,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
     event.preventDefault()
     setLoginError('')
     setRegisterError('')
-    setIsCreatingAccount(true)
+    setIsRegisteringAccount(true)
 
     const formData = new FormData(event.currentTarget)
     const email = String(formData.get('email') ?? '').trim()
@@ -64,7 +65,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
     } catch (error) {
       setRegisterError(getRegisterErrorMessage(error))
     } finally {
-      setIsCreatingAccount(false)
+      setIsRegisteringAccount(false)
     }
   }
 
@@ -181,13 +182,13 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                   </label>
 
                   <div className="login-form-actions">
-                    <button type="submit" disabled={isCreatingAccount || !isFirebaseConfigured}>
-                      {isCreatingAccount ? 'Creando cuenta…' : 'Crear cuenta'}
+                    <button type="submit" disabled={isRegisteringAccount || !isFirebaseConfigured}>
+                      {isRegisteringAccount ? 'Creando cuenta…' : 'Crear cuenta'}
                     </button>
                     <button
                       type="button"
                       className="secondary-button"
-                      disabled={isCreatingAccount}
+                      disabled={isRegisteringAccount}
                       onClick={() => {
                         setRegisterError('')
                         setIsCreatingAccount(false)
@@ -304,8 +305,12 @@ const getLoginErrorMessage = (error: unknown) => {
       case 'functions/unavailable':
       case 'functions/deadline-exceeded':
         return 'No se pudo conectar con el servicio de registro. Inténtalo de nuevo.'
+      case 'functions/internal':
+        return 'El servicio de registro falló. Revisa los registros de registerAccount en Firebase Console.'
+      case 'functions/not-found':
+        return 'No se encontró registerAccount en el proyecto Firebase configurado para esta aplicación.'
       default:
-        return 'No se pudo completar la operación. Inténtalo de nuevo.'
+        return `No se pudo completar la operación. Inténtalo de nuevo. (Código Firebase: ${error.code})`
     }
   }
 
