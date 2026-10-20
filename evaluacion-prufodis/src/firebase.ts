@@ -46,32 +46,36 @@ export type UserRole = 'admin' | 'readOnly'
 export const isAdminUid = (uid: string) => adminUids.includes(uid)
 export const isReadOnlyUid = (uid: string) => readOnlyUids.includes(uid)
 
+const getLegacyRole = (uid: string): UserRole | null =>
+  isAdminUid(uid) ? 'admin' : isReadOnlyUid(uid) ? 'readOnly' : null
+
 export const getUserRole = async (uid: string): Promise<UserRole> => {
+  const legacyRole = getLegacyRole(uid)
+
   if (firebaseDb === null) {
+    if (legacyRole !== null) return legacyRole
     throw new Error('Firebase no está configurado. Completa las variables de entorno.')
   }
-
-  const fallbackRole = isAdminUid(uid) ? 'admin' : isReadOnlyUid(uid) ? 'readOnly' : null
 
   let userSnapshot
   try {
     userSnapshot = await getDoc(doc(firebaseDb, 'users', uid))
   } catch (error) {
-    if (fallbackRole !== null) return fallbackRole
+    if (legacyRole !== null) return legacyRole
     throw error
   }
 
   if (!userSnapshot.exists()) {
-    if (fallbackRole !== null) return fallbackRole
-    throw new Error('La cuenta no tiene un rol asignado para acceder a esta aplicación.')
+    if (legacyRole !== null) return legacyRole
+    throw new Error('La cuenta no tiene un rol asignado para usar esta aplicación.')
   }
 
   const role = userSnapshot.data().role
-  if (role === 'admin' || role === 'readOnly') {
-    return role
+  if (role !== 'admin' && role !== 'readOnly') {
+    throw new Error('El perfil de la cuenta contiene un rol no válido.')
   }
 
-  throw new Error('La cuenta tiene un rol no válido.')
+  return role
 }
 
 export const createAccount = async (email: string, password: string): Promise<User> => {
@@ -83,19 +87,18 @@ export const createAccount = async (email: string, password: string): Promise<Us
     { email: string; password: string },
     { uid: string; role: UserRole }
   >(firebaseFunctions, 'registerAccount')
-  await registerAccount({ email: email.trim().toLowerCase(), password })
+  const result = await registerAccount({ email: email.trim(), password })
+  const credential = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password)
 
-  try {
-    return (await signInWithEmailAndPassword(firebaseAuth, email, password)).user
-  } catch {
-    throw new Error('La cuenta se creó, pero no se pudo iniciar sesión. Vuelve al acceso e inténtalo.')
+  if (credential.user.uid !== result.data.uid) {
+    await signOut(firebaseAuth)
+    throw new Error('La cuenta se creó, pero no se pudo validar la sesión. Inicia sesión manualmente.')
   }
+
+  return credential.user
 }
 
-export const authenticateUser = async (
-  email: string,
-  password: string,
-): Promise<{ user: User; role: UserRole }> => {
+export const authenticateUser = async (email: string, password: string): Promise<User> => {
   if (firebaseAuth === null) {
     throw new Error('Firebase no está configurado. Completa las variables de entorno.')
   }
@@ -103,15 +106,11 @@ export const authenticateUser = async (
   const credential = await signInWithEmailAndPassword(firebaseAuth, email, password)
 
   try {
-    const role = await getUserRole(credential.user.uid)
-    return { user: credential.user, role }
+    await getUserRole(credential.user.uid)
   } catch (error) {
-    try {
-      await signOut(firebaseAuth)
-    } catch (signOutError) {
-      console.error('No se pudo cerrar la sesión de una cuenta sin rol autorizado.', signOutError)
-    }
-
+    await signOut(firebaseAuth)
     throw error
   }
+
+  return credential.user
 }

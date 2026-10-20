@@ -13,6 +13,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
   const [registerError, setRegisterError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [isRegisteringAccount, setIsRegisteringAccount] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -39,7 +40,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
     event.preventDefault()
     setLoginError('')
     setRegisterError('')
-    setIsCreatingAccount(true)
+    setIsRegisteringAccount(true)
 
     const formData = new FormData(event.currentTarget)
     const email = String(formData.get('email') ?? '').trim()
@@ -64,7 +65,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
     } catch (error) {
       setRegisterError(getRegisterErrorMessage(error))
     } finally {
-      setIsCreatingAccount(false)
+      setIsRegisteringAccount(false)
     }
   }
 
@@ -181,12 +182,13 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                   </label>
 
                   <div className="login-form-actions">
-                    <button type="submit" disabled={isCreatingAccount || !isFirebaseConfigured}>
-                      {isCreatingAccount ? 'Creando cuenta…' : 'Crear cuenta'}
+                    <button type="submit" disabled={isRegisteringAccount || !isFirebaseConfigured}>
+                      {isRegisteringAccount ? 'Creando cuenta…' : 'Crear cuenta'}
                     </button>
                     <button
                       type="button"
                       className="secondary-button"
+                      disabled={isRegisteringAccount}
                       onClick={() => {
                         setRegisterError('')
                         setIsCreatingAccount(false)
@@ -277,16 +279,7 @@ const getLoginErrorMessage = (error: unknown) => {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case 'auth/email-already-in-use':
-      case 'functions/already-exists':
         return 'Este correo ya está registrado.'
-      case 'functions/invalid-argument':
-        return 'Introduce un correo válido y una contraseña de al menos 6 caracteres.'
-      case 'functions/failed-precondition':
-        return 'Cierra la sesión antes de crear una cuenta nueva.'
-      case 'functions/resource-exhausted':
-        return 'Se está creando otra cuenta. Espera un momento e inténtalo de nuevo.'
-      case 'functions/not-found':
-        return 'El servicio de registro no está desplegado en Firebase.'
       case 'auth/invalid-credential':
       case 'auth/user-not-found':
       case 'auth/wrong-password':
@@ -300,10 +293,24 @@ const getLoginErrorMessage = (error: unknown) => {
       case 'auth/network-request-failed':
         return 'No se pudo conectar con Firebase. Comprueba tu conexión e inténtalo de nuevo.'
       case 'auth/operation-not-allowed':
+        return 'El inicio de sesión con correo y contraseña no está habilitado en Firebase.'
+      case 'functions/already-exists':
+        return 'Este correo ya está registrado.'
+      case 'functions/invalid-argument':
+        return 'Introduce un correo válido y una contraseña de al menos 6 caracteres.'
+      case 'functions/resource-exhausted':
+        return 'Se está creando otra cuenta. Inténtalo de nuevo en un momento.'
+      case 'functions/failed-precondition':
+        return 'Cierra la sesión antes de crear una cuenta.'
       case 'functions/unavailable':
-        return 'El acceso con correo y contraseña o el servicio de registro no está habilitado en Firebase.'
+      case 'functions/deadline-exceeded':
+        return 'No se pudo conectar con el servicio de registro. Inténtalo de nuevo.'
+      case 'functions/internal':
+        return 'El servicio de registro falló. Revisa los registros de registerAccount en Firebase Console.'
+      case 'functions/not-found':
+        return 'No se encontró registerAccount en el proyecto Firebase configurado para esta aplicación.'
       default:
-        return 'No se pudo completar la operación. Inténtalo de nuevo.'
+        return `No se pudo completar la operación. Inténtalo de nuevo. (Código Firebase: ${error.code})`
     }
   }
 

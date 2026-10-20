@@ -40,33 +40,34 @@ function App() {
   useEffect(() => {
     if (firebaseAuth === null) return
 
+    let authStateRequest = 0
+
     return onAuthStateChanged(
       firebaseAuth,
       async (user) => {
+        const requestId = ++authStateRequest
         setAuthenticatedUser(user)
+        setUserRole(null)
         setLoadedUserUid(null)
         setDataError(null)
 
         if (user === null) {
-          setUserRole(null)
           setIsAuthLoading(false)
           return
         }
 
+        setIsAuthLoading(true)
+
         try {
           const role = await getUserRole(user.uid)
-          if (firebaseAuth.currentUser?.uid !== user.uid) return
+          if (requestId !== authStateRequest) return
           setUserRole(role)
         } catch (error) {
+          if (requestId !== authStateRequest) return
           console.error('No se pudo resolver el rol del usuario.', error)
           setUserRole(null)
-          try {
-            await signOut(firebaseAuth)
-          } catch (signOutError) {
-            console.error('No se pudo cerrar la sesión del usuario sin un rol válido.', signOutError)
-          }
         } finally {
-          if (firebaseAuth.currentUser?.uid === user.uid) {
+          if (requestId === authStateRequest) {
             setIsAuthLoading(false)
           }
         }
@@ -81,7 +82,8 @@ function App() {
   }, [])
 
   const handleLogin = async (email: string, password: string) => {
-    const { user, role } = await authenticateUser(email, password)
+    const user = await authenticateUser(email, password)
+    const role = await getUserRole(user.uid)
     setAuthenticatedUser(user)
     setUserRole(role)
   }
@@ -236,14 +238,14 @@ function App() {
         <Route
           path="/"
           element={
-              isAuthorized ? (
-                <Navigate to="/menu" replace />
-              ) : authenticatedUser ? (
-                <Navigate to="/acceso-denegado" replace />
-              ) : (
-                <LandingPage onLogin={handleLogin} />
-              )
-            }
+            isAuthorized ? (
+              <Navigate to="/menu" replace />
+            ) : authenticatedUser ? (
+              <Navigate to="/acceso-denegado" replace />
+            ) : (
+              <LandingPage onLogin={handleLogin} />
+            )
+          }
         />
         <Route
           path="/acceso-denegado"
