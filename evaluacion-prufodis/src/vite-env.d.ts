@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_PROJECT_ID?: string
   readonly VITE_FIREBASE_APP_ID?: string
   readonly VITE_FIREBASE_ADMIN_UIDS?: string
+  readonly VITE_FIREBASE_READONLY_UIDS?: string
 }
 
 interface ImportMeta {
