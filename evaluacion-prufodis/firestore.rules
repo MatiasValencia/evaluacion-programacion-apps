@@ -2,14 +2,31 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function hasRole(role) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
     function isAdmin() {
       return request.auth != null
-        && request.auth.uid == 'S50r4CXrkMXxaiP7schIno93LvO2';
+        && (
+          request.auth.uid == 'S50r4CXrkMXxaiP7schIno93LvO2'
+          || hasRole('admin')
+        );
     }
 
     function isCommonUser() {
       return request.auth != null
-        && request.auth.uid == 'rWwzcfpIHiSsqn9pwW7iUKK7zxW2';
+        && (
+          request.auth.uid == 'rWwzcfpIHiSsqn9pwW7iUKK7zxW2'
+          || hasRole('readOnly')
+        );
+    }
+
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
 
     match /students/{documentId} {

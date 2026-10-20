@@ -13,8 +13,8 @@ import {
   authenticateUser,
   firebaseAuth,
   firebaseDb,
-  isAdminUid,
-  isReadOnlyUid,
+  getUserRole,
+  type UserRole,
 } from './firebase'
 import {
   deleteRecord,
@@ -31,6 +31,7 @@ function App() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>([])
   const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(firebaseAuth !== null)
   const [loadedUserUid, setLoadedUserUid] = useState<string | null>(null)
   const [dataError, setDataError] = useState<string | null>(null)
@@ -41,36 +42,65 @@ function App() {
 
     return onAuthStateChanged(
       firebaseAuth,
-      (user) => {
+      async (user) => {
         setAuthenticatedUser(user)
         setLoadedUserUid(null)
         setDataError(null)
-        setIsAuthLoading(false)
+
+        if (user === null) {
+          setUserRole(null)
+          setIsAuthLoading(false)
+          return
+        }
+
+        try {
+          const role = await getUserRole(user.uid)
+          if (firebaseAuth.currentUser?.uid !== user.uid) return
+          setUserRole(role)
+        } catch (error) {
+          console.error('No se pudo resolver el rol del usuario.', error)
+          setUserRole(null)
+          try {
+            await signOut(firebaseAuth)
+          } catch (signOutError) {
+            console.error('No se pudo cerrar la sesión del usuario sin un rol válido.', signOutError)
+          }
+        } finally {
+          if (firebaseAuth.currentUser?.uid === user.uid) {
+            setIsAuthLoading(false)
+          }
+        }
       },
       (error) => {
         console.error('No se pudo restaurar la sesión de Firebase.', error)
         setAuthenticatedUser(null)
+        setUserRole(null)
         setIsAuthLoading(false)
       },
     )
   }, [])
 
   const handleLogin = async (email: string, password: string) => {
-    const user = await authenticateUser(email, password)
+    const { user, role } = await authenticateUser(email, password)
     setAuthenticatedUser(user)
+    setUserRole(role)
   }
 
   const handleLogout = () => {
     if (firebaseAuth === null) return
 
-    void signOut(firebaseAuth).catch((error: unknown) => {
-      console.error('No se pudo cerrar la sesión de Firebase.', error)
-      window.alert('No se pudo cerrar la sesión. Inténtalo de nuevo.')
-    })
+    void signOut(firebaseAuth)
+      .then(() => {
+        setUserRole(null)
+      })
+      .catch((error: unknown) => {
+        console.error('No se pudo cerrar la sesión de Firebase.', error)
+        window.alert('No se pudo cerrar la sesión. Inténtalo de nuevo.')
+      })
   }
 
-  const isAdmin = authenticatedUser !== null && isAdminUid(authenticatedUser.uid)
-  const isReadOnly = authenticatedUser !== null && isReadOnlyUid(authenticatedUser.uid)
+  const isAdmin = userRole === 'admin'
+  const isReadOnly = userRole === 'readOnly'
   const isAuthorized = isAdmin || isReadOnly
   const authorizedUid = isAuthorized ? authenticatedUser?.uid ?? null : null
 
@@ -206,8 +236,14 @@ function App() {
         <Route
           path="/"
           element={
-            isAuthorized ? <Navigate to="/menu" replace /> : <LandingPage onLogin={handleLogin} />
-          }
+              isAuthorized ? (
+                <Navigate to="/menu" replace />
+              ) : authenticatedUser ? (
+                <Navigate to="/acceso-denegado" replace />
+              ) : (
+                <LandingPage onLogin={handleLogin} />
+              )
+            }
         />
         <Route
           path="/acceso-denegado"
