@@ -8,6 +8,9 @@ import AlumnosPage, { type Student } from './pages/AlumnosPage'
 import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
 import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
 import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
+import HabilidadesPedagogicasPage, {
+  type PedagogicalSkill,
+} from './pages/HabilidadesPedagogicasPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
 import {
   authenticateUser,
@@ -30,6 +33,7 @@ function App() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>([])
+  const [pedagogicalSkills, setPedagogicalSkills] = useState<PedagogicalSkill[]>([])
   const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(firebaseAuth !== null)
@@ -120,7 +124,7 @@ function App() {
     }
 
     const initializeWhenReady = () => {
-      if (receivedCollections.size !== 4 || hasStartedInitialization) return
+      if (receivedCollections.size !== 5 || hasStartedInitialization) return
       hasStartedInitialization = true
 
       if (!isAdmin) {
@@ -135,6 +139,7 @@ function App() {
           setAssignments(data.assignments)
           setAttendanceRecords(data.attendanceRecords)
           setEvaluationGrades(data.evaluationGrades)
+          setPedagogicalSkills(data.pedagogicalSkills)
           setLoadedUserUid(authorizedUid)
         })
         .catch((error: unknown) => {
@@ -181,6 +186,16 @@ function App() {
           if (!isActive) return
           setEvaluationGrades(records)
           receivedCollections.add('evaluationGrades')
+          initializeWhenReady()
+        },
+        handleDataError,
+      ),
+      subscribeToCollection(
+        'pedagogicalSkills',
+        (records) => {
+          if (!isActive) return
+          setPedagogicalSkills(records)
+          receivedCollections.add('pedagogicalSkills')
           initializeWhenReady()
         },
         handleDataError,
@@ -287,8 +302,48 @@ function App() {
               <AlumnosPage
                 students={students}
                 canEdit={isAdmin}
+                pedagogicalSkills={pedagogicalSkills}
+                onSkillDelete={(skillId) => deleteRecord('pedagogicalSkills', skillId)}
                 onStudentSave={(student) => saveRecord('students', student)}
                 onStudentDelete={deleteStudentAndUnlinkFromAssignments}
+                onLogout={handleLogout}
+              />
+            }
+          />
+          <Route
+            path="alumnos/:studentId"
+            element={
+              <AlumnosPage
+                students={students}
+                canEdit={isAdmin}
+                pedagogicalSkills={pedagogicalSkills}
+                onSkillDelete={(skillId) => deleteRecord('pedagogicalSkills', skillId)}
+                onStudentSave={(student) => saveRecord('students', student)}
+                onStudentDelete={deleteStudentAndUnlinkFromAssignments}
+                onLogout={handleLogout}
+              />
+            }
+          />
+          <Route
+            path="alumnos/:studentId/habilidades/nueva"
+            element={
+              <HabilidadesPedagogicasPage
+                students={students}
+                skills={pedagogicalSkills}
+                canEdit={isAdmin}
+                onSkillSave={(skill) => saveRecord('pedagogicalSkills', skill)}
+                onLogout={handleLogout}
+              />
+            }
+          />
+          <Route
+            path="alumnos/:studentId/habilidades/:skillId/editar"
+            element={
+              <HabilidadesPedagogicasPage
+                students={students}
+                skills={pedagogicalSkills}
+                canEdit={isAdmin}
+                onSkillSave={(skill) => saveRecord('pedagogicalSkills', skill)}
                 onLogout={handleLogout}
               />
             }

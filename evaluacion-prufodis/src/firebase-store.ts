@@ -16,12 +16,14 @@ import type { Student } from './pages/AlumnosPage'
 import type { Assignment } from './pages/AsignaturasPage'
 import type { AttendanceRecord } from './pages/AsistenciaPage'
 import type { EvaluationGrade } from './pages/EvaluacionesPage'
+import type { PedagogicalSkill } from './pages/HabilidadesPedagogicasPage'
 
 type StoreData = {
   students: Student[]
   assignments: Assignment[]
   attendanceRecords: AttendanceRecord[]
   evaluationGrades: EvaluationGrade[]
+  pedagogicalSkills: PedagogicalSkill[]
 }
 
 type StoreCollection = keyof StoreData
@@ -32,6 +34,7 @@ const collectionNames: StoreCollection[] = [
   'assignments',
   'attendanceRecords',
   'evaluationGrades',
+  'pedagogicalSkills',
 ]
 
 const storageKeys: Record<StoreCollection, string> = {
@@ -39,6 +42,7 @@ const storageKeys: Record<StoreCollection, string> = {
   assignments: 'prufodis-assignments',
   attendanceRecords: 'prufodis-attendance',
   evaluationGrades: 'prufodis-evaluation-grades',
+  pedagogicalSkills: 'prufodis-pedagogical-skills',
 }
 
 const requireFirestore = () => {
@@ -78,6 +82,7 @@ const readLocalData = (): StoreData => ({
   assignments: readStoredArray<Assignment>(storageKeys.assignments),
   attendanceRecords: readStoredArray<AttendanceRecord>(storageKeys.attendanceRecords),
   evaluationGrades: readStoredArray<EvaluationGrade>(storageKeys.evaluationGrades),
+  pedagogicalSkills: readStoredArray<PedagogicalSkill>(storageKeys.pedagogicalSkills),
 })
 
 const commitOperations = async (operations: ((batch: WriteBatch) => void)[]) => {
@@ -113,7 +118,10 @@ export const deleteRecord = async (name: StoreCollection, id: string | number) =
 
 export const deleteStudentAndUnlinkFromAssignments = async (studentId: number) => {
   const db = requireFirestore()
-  const assignmentSnapshot = await getDocs(collection(db, 'assignments'))
+  const [assignmentSnapshot, skillSnapshot] = await Promise.all([
+    getDocs(collection(db, 'assignments')),
+    getDocs(collection(db, 'pedagogicalSkills')),
+  ])
   const operations: ((batch: WriteBatch) => void)[] = [
     (batch) => batch.delete(recordDocument('students', studentId)),
   ]
@@ -127,6 +135,13 @@ export const deleteStudentAndUnlinkFromAssignments = async (studentId: number) =
         studentIds: assignment.studentIds.filter((id) => id !== studentId),
       }),
     )
+  })
+
+  skillSnapshot.docs.forEach((skillDocument) => {
+    const skill = skillDocument.data() as PedagogicalSkill
+    if (skill.studentId !== studentId) return
+
+    operations.push((batch) => batch.delete(skillDocument.ref))
   })
 
   await commitOperations(operations)
