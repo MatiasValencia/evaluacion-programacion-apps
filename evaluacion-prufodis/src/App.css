@@ -2235,6 +2235,358 @@ button.grade-chip {
   background: rgba(148, 163, 184, 0.2);
 }
 
+.page-shell,
+.auth-loading {
+  color: #000;
+  background: #fff;
+}
+
+.page-shell {
+  text-align: left;
+}
+
+.page-shell .login-card {
+  border-color: #d6dde5;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 33, 71, 0.06);
+}
+
+.page-shell .login-copy h1,
+.page-shell .login-copy p:last-child,
+#access-denied-title {
+  color: #000;
+}
+
+.page-shell .eyebrow {
+  border-color: #90abc4;
+  background: #e7eef4;
+  color: #002147;
+}
+
+.page-shell .primary-button {
+  border-color: #002147;
+  background: #002147;
+  color: #fff;
+  box-shadow: none;
+}
+
+.page-shell .primary-button:hover {
+  background: #004680;
+}
+
+.auth-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.dashboard-shell {
+  color: #000;
+  background: #fff;
+  text-align: left;
+}
+
+.dashboard-shell * {
+  color: #000;
+}
+
+.dashboard-shell :is(
+  h1,
+  h2,
+  h3,
+  p,
+  label,
+  legend,
+  dt,
+  dd,
+  span,
+  small,
+  th,
+  td,
+  strong,
+  a,
+  button,
+  summary
+) {
+  color: #000;
+}
+
+.dashboard-shell :is(
+  .sidebar,
+  .dashboard-stat-card,
+  .dashboard-section,
+  .summary-card,
+  .section-page,
+  .students-panel,
+  .grade-options,
+  .date-picker
+) {
+  border-color: #d6dde5;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 33, 71, 0.06);
+}
+
+.dashboard-shell .sidebar {
+  box-shadow: none;
+}
+
+.dashboard-shell :is(
+  .dashboard-record,
+  .dashboard-breakdown-row,
+  .dashboard-grade-list li,
+  .student-row,
+  .student-profile-details > div,
+  .pedagogical-skills,
+  .assignment-row,
+  .attendance-assignment-row,
+  .attendance-record-row,
+  .grade-entry-row,
+  .evaluation-table th,
+  .evaluation-table td
+) {
+  border-color: #d6dde5;
+}
+
+.dashboard-shell :is(
+  .dashboard-stat-card span,
+  .dashboard-record > div:first-child span,
+  .dashboard-breakdown-heading span,
+  .dashboard-section-eyebrow,
+  .dashboard-empty-state,
+  .dashboard-breakdown-values,
+  .dashboard-grade-list small,
+  .students-empty-state span,
+  .student-profile-details dt,
+  .student-profile-photo,
+  .attendance-record-count,
+  .grade-weight-label
+) {
+  color: #4b5563;
+}
+
+.dashboard-shell :is(
+  .sidebar-brand,
+  .dashboard-header h1,
+  .dashboard-stat-card strong,
+  .dashboard-section-heading h2,
+  .dashboard-breakdown h3,
+  .dashboard-grade-ranking h3,
+  .dashboard-record strong,
+  .dashboard-breakdown-heading strong,
+  .dashboard-grade-list li > span,
+  .summary-card h2,
+  .section-page h1,
+  .students-panel h2,
+  .students-empty-state p,
+  .student-name,
+  .student-profile-details dd,
+  .pedagogical-skill summary,
+  .assignment-expand-button,
+  .assignment-students h3,
+  .evaluation-table tbody th
+) {
+  color: #000;
+}
+
+.dashboard-shell :is(
+  .sidebar-link,
+  .dashboard-section-heading a,
+  .student-profile-back,
+  .student-photo-remove,
+  .assignment-weight-hint,
+  .attendance-assignment-empty,
+  .assignment-chevron,
+  .evaluation-table thead th
+) {
+  color: #004680;
+}
+
+.dashboard-shell .sidebar-link:hover,
+.dashboard-shell .sidebar-link.active {
+  background: #90abc4;
+  color: #000;
+}
+
+.dashboard-shell :is(.sidebar-back-button, .menu-toggle) {
+  border-color: #90abc4;
+  background: #90abc4;
+  color: #000;
+}
+
+.dashboard-shell .menu-toggle span {
+  background: #000;
+}
+
+.dashboard-shell :is(.primary-button, .login-form button:not(.secondary-button)) {
+  border-color: #002147;
+  background: #002147;
+  color: #fff;
+  box-shadow: none;
+}
+
+.dashboard-shell :is(.primary-button, .login-form button:not(.secondary-button)):hover {
+  background: #004680;
+}
+
+.dashboard-shell .secondary-button {
+  border-color: #004680;
+  background: #004680;
+  color: #fff;
+}
+
+.dashboard-shell .sidebar-logout {
+  border-color: transparent;
+  background: transparent;
+  color: #b91c1c;
+}
+
+.dashboard-shell .sidebar-back-button:hover {
+  border-color: #004680;
+  background: #004680;
+  color: #fff;
+}
+
+.dashboard-shell .sidebar-logout:hover {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+
+.dashboard-shell :is(
+  .student-action-button,
+  .grade-add-button,
+  .calendar-month-button,
+  .calendar-clear-button,
+  .calendar-day.selected
+) {
+  border-color: #90abc4;
+  background: #90abc4;
+  color: #000;
+}
+
+.dashboard-shell :is(.student-action-button, .grade-add-button, .calendar-month-button, .calendar-clear-button):hover {
+  border-color: #004680;
+  background: #004680;
+  color: #fff;
+}
+
+.dashboard-shell .calendar-day:hover {
+  background: #90abc4;
+  color: #000;
+}
+
+.dashboard-shell :is(
+  .login-form input,
+  .student-form input,
+  .pedagogical-skill-form input,
+  .pedagogical-skill-form textarea,
+  .assignment-form input,
+  .attendance-field input,
+  .attendance-field select,
+  .attendance-time-part input,
+  .search-filter input,
+  .date-filter-button,
+  .grade-input
+) {
+  border-color: #aab6c2;
+  background: #fff;
+  color: #000;
+}
+
+.dashboard-shell :is(
+  .login-form input,
+  .student-form input,
+  .pedagogical-skill-form input,
+  .pedagogical-skill-form textarea,
+  .assignment-form input,
+  .attendance-field input,
+  .attendance-field select,
+  .attendance-time-part input,
+  .search-filter input,
+  .date-filter-button,
+  .grade-input
+):focus {
+  border-color: #004680;
+  box-shadow: 0 0 0 3px rgba(0, 70, 128, 0.15);
+}
+
+.dashboard-shell :is(.attendance-field option, .grade-options) {
+  background: #fff;
+  color: #000;
+}
+
+.dashboard-shell :is(.assignment-validation, .student-delete-confirmation > span) {
+  color: #b91c1c;
+}
+
+.dashboard-shell .assignment-validation {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.dashboard-shell .student-action-button.student-delete-button {
+  border-color: #b91c1c;
+  background: #fff;
+  color: #b91c1c;
+}
+
+.dashboard-shell .student-action-button.student-delete-button:hover {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+
+.dashboard-shell :is(.dashboard-present, .dashboard-passing-grade, .grade-chip.passing) {
+  color: #166534;
+}
+
+.dashboard-shell :is(.dashboard-absent, .dashboard-failing-grade, .grade-chip.failing) {
+  color: #b91c1c;
+}
+
+.dashboard-shell :is(.dashboard-meter-present, .dashboard-meter-passing) {
+  background: #15803d;
+}
+
+.dashboard-shell :is(.dashboard-meter-absent, .dashboard-meter-failing) {
+  background: #b91c1c;
+}
+
+.dashboard-shell .grade-chip.passing {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.dashboard-shell .grade-chip.failing {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.dashboard-shell .attendance-period-options label,
+.dashboard-shell .assignment-student-list label,
+.dashboard-shell .attendance-student-list li,
+.dashboard-shell .pedagogical-skill,
+.dashboard-shell .student-profile-photo,
+.dashboard-shell .student-photo-picker {
+  border-color: #d6dde5;
+  background: #fff;
+}
+
+.dashboard-shell :is(.student-photo-change) {
+  background: rgba(0, 33, 71, 0.82);
+  color: #fff;
+}
+
+.dashboard-shell :is(.student-photo-picker:focus-within, .pedagogical-skill summary:focus-visible) {
+  outline-color: #004680;
+}
+
+.dashboard-shell .sidebar {
+  border-color: #d6dde5;
+}
+
 @media (max-width: 760px) {
   .page-shell {
     padding-inline: 16px;
