@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import logo from '../assets/logo.png'
 
 const menuItems = [
   { to: '/menu/alumnos', label: 'Alumnos' },
@@ -14,27 +16,13 @@ type DashboardSidebarProps = {
 
 const DashboardSidebar = ({ onLogout }: DashboardSidebarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { pathname } = useLocation()
-  const isDashboardSection = pathname !== '/menu'
 
   return (
     <aside className={`sidebar ${isMenuOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-top">
-        <div className="sidebar-brand-group">
-          {isDashboardSection && (
-            <NavLink
-              className="sidebar-back-button"
-              to="/menu"
-              aria-label="Volver al dashboard"
-              title="Volver al dashboard"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </NavLink>
-          )}
-          <div className="sidebar-brand">PRUFODIS Ucentral</div>
-        </div>
+        <NavLink className="sidebar-brand" to="/menu" aria-label="PRUFODIS Ucentral">
+          <img src={logo} alt="PRUFODIS Ucentral" />
+        </NavLink>
         <button
           className="menu-toggle dashboard-menu-toggle"
           type="button"
@@ -53,21 +41,49 @@ const DashboardSidebar = ({ onLogout }: DashboardSidebarProps) => {
         id="dashboard-navigation"
         aria-label="Navegación principal"
       >
-        {menuItems.map(({ to, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            {label}
-          </NavLink>
-        ))}
+        <div className="sidebar-links">
+          {menuItems.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </div>
         <button className="sidebar-logout" type="button" onClick={onLogout}>
           Cerrar sesión
         </button>
       </nav>
     </aside>
+  )
+}
+
+type DashboardPageTitleProps = {
+  children: ReactNode
+}
+
+export const DashboardPageTitle = ({ children }: DashboardPageTitleProps) => {
+  const { pathname } = useLocation()
+
+  return (
+    <div className="dashboard-page-title">
+      {pathname !== '/menu' && (
+        <NavLink
+          className="sidebar-back-button"
+          to="/menu"
+          aria-label="Volver al dashboard"
+          title="Volver al dashboard"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </NavLink>
+      )}
+      {children}
+    </div>
   )
 }
 

@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
 import { NavLink } from 'react-router-dom'
-import DashboardSidebar from '../components/DashboardSidebar'
+import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
 import { matchesSearch } from '../utils/search'
 import type { Student } from './AlumnosPage'
 import type { Assignment } from './AsignaturasPage'
@@ -242,10 +242,9 @@ const EvaluacionesPage = ({
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
-          <div>
-            <p className="eyebrow">{canEdit ? 'Administración' : 'Consulta académica'}</p>
+          <DashboardPageTitle>
             <h1>{canEdit && isRegistering ? 'Registrar notas' : 'Evaluaciones'}</h1>
-          </div>
+          </DashboardPageTitle>
         </header>
 
         {canEdit && isRegistering ? (

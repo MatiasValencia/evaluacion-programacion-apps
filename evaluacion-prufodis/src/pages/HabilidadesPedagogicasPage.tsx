@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import DashboardSidebar from '../components/DashboardSidebar'
+import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
 import type { Student } from './AlumnosPage'
 
 export type PedagogicalSkill = {
@@ -69,10 +69,9 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
       <DashboardSidebar onLogout={onLogout} />
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
-          <div>
-            <p className="eyebrow">Ficha de {student.nombres}</p>
+          <DashboardPageTitle>
             <h1>{skill ? 'Editar habilidad' : 'Agregar habilidad'}</h1>
-          </div>
+          </DashboardPageTitle>
         </header>
 
         <section className="students-panel" aria-labelledby="pedagogical-skill-form-title">

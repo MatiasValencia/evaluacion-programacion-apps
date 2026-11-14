@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import DashboardSidebar from '../components/DashboardSidebar'
+import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
 import type { PedagogicalSkill } from './HabilidadesPedagogicasPage'
 import { matchesSearch } from '../utils/search'
 
@@ -212,14 +212,13 @@ const AlumnosPage = ({
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
-          <div>
-            <p className="eyebrow">{canEdit ? 'Administración' : 'Consulta académica'}</p>
+          <DashboardPageTitle>
             <h1>
               {canEdit && isFormOpen
                 ? editingId === null ? 'Agregar alumno' : 'Editar alumno'
                 : selectedStudent ? 'Ficha del alumno' : 'Alumnos'}
             </h1>
-          </div>
+          </DashboardPageTitle>
         </header>
 
         {canEdit && isFormOpen ? (

@@ -3,7 +3,7 @@ import type { Student } from './AlumnosPage'
 import type { Assignment } from './AsignaturasPage'
 import type { AttendanceRecord } from './AsistenciaPage'
 import type { EvaluationGrade } from './EvaluacionesPage'
-import DashboardSidebar from '../components/DashboardSidebar'
+import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
 
 type MenuPageProps = {
   students: Student[]
@@ -50,10 +50,9 @@ const MenuPage = ({
 
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
-          <div>
-            <p className="eyebrow">Panel principal</p>
+          <DashboardPageTitle>
             <h1>Dashboard</h1>
-          </div>
+          </DashboardPageTitle>
         </header>
 
         <section className="dashboard-summary">
