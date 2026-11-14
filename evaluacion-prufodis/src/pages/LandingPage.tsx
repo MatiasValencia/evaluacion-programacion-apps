@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FirebaseError } from 'firebase/app'
 import { createAccount, isFirebaseConfigured } from '../firebase'
+import heroImage from '../assets/image1.jpeg'
+import logo from '../assets/logo.png'
 
 type LandingPageProps = {
   onLogin: (email: string, password: string) => Promise<void>
@@ -14,7 +16,6 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [isRegisteringAccount, setIsRegisteringAccount] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -70,208 +71,156 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
   }
 
   return (
-    <div className="page-shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">P</span>
-          <span>PRUFODIS - Universidad Central</span>
+    <main className="landing-layout">
+      <nav className="landing-mobile-nav" aria-label="Navegación principal">
+        <img src={logo} alt="PRUFODIS - Universidad Central" />
+      </nav>
+      <section className="landing-visual" style={{ backgroundImage: `url(${heroImage})` }}>
+        <div className="landing-visual-shade" />
+        <div className="landing-brand">
+          <img src={logo} alt="PRUFODIS - Universidad Central" />
         </div>
+        <div className="landing-message">
+          <p className="landing-eyebrow">Sistema de gestión educativa</p>
+          <h1>Todo lo académico, en un solo lugar.</h1>
+          <p>Gestiona alumnos, asignaturas, evaluaciones y asistencias de forma sencilla y centralizada.</p>
+        </div>
+      </section>
 
-        <button
-          className="menu-toggle landing-menu-toggle"
-          type="button"
-          aria-label={isMenuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
-          aria-expanded={isMenuOpen}
-          aria-controls="landing-navigation"
-          onClick={() => setIsMenuOpen((open) => !open)}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-
-        <nav
-          className={`nav ${isMenuOpen ? 'nav-open' : ''}`}
-          id="landing-navigation"
-          aria-label="Navegación principal"
-        >
-          <a href="#benefits" onClick={() => setIsMenuOpen(false)}>Ventajas</a>
-          <a href="#login" onClick={() => setIsMenuOpen(false)}>Iniciar sesión</a>
-        </nav>
-      </header>
-
-      <main>
-        <section className="hero">
-          <div className="hero-copy">
-            <p className="eyebrow">Sistema de gestión educativa</p>
-            <h1>Organiza alumnos, asignaturas, evaluaciones y asistencias en un solo lugar.</h1>
-            <p className="lead">
-              Centraliza la información académica de tu centro y agiliza la toma de decisiones con
-              herramientas pensadas para docentes y gestores.
+      <section id="login" className="landing-login">
+        <div className="landing-login-content">
+          <div className="login-copy">
+            <p className="landing-eyebrow">PRUFODIS</p>
+            <h2>{isCreatingAccount ? 'Crear cuenta' : 'Inicia sesión'}</h2>
+            <p>
+              {isCreatingAccount
+                ? 'Crea tu cuenta para acceder a la información académica.'
+                : 'Accede a la plataforma para consultar y gestionar la información académica.'}
             </p>
-
-            <ul className="stats" aria-label="Estadísticas de la plataforma">
-              <li>
-                <strong>1.000+</strong>
-                <span>alumnos gestionados</span>
-              </li>
-              <li>
-                <strong>25+</strong>
-                <span>asignaturas online</span>
-              </li>
-            </ul>
           </div>
 
-          <section id="login" className="login-section hero-login">
-            <div className="login-card">
-              <div className="login-copy">
-                <p className="eyebrow">Acceso</p>
-                <h2>{isCreatingAccount ? 'Crear cuenta' : 'Inicia sesión'}</h2>
-                <p>
-                  {isCreatingAccount
-                    ? 'Crea tu cuenta para acceder a la información académica.'
-                    : 'Accede para consultar la información académica o administrar los datos autorizados.'}
+          {isCreatingAccount ? (
+            <form className="login-form" onSubmit={handleCreateAccount}>
+              {!isFirebaseConfigured && (
+                <p className="login-message login-error" role="alert">
+                  Firebase no está configurado. Completa las variables de entorno del archivo
+                  <code> .env.local</code> y reinicia la aplicación.
                 </p>
-              </div>
-
-              {isCreatingAccount ? (
-                <form className="login-form" onSubmit={handleCreateAccount}>
-                  {!isFirebaseConfigured && (
-                    <p className="login-message login-error" role="alert">
-                      Firebase no está configurado. Completa las variables de entorno del archivo
-                      <code> .env.local</code> y reinicia la aplicación.
-                    </p>
-                  )}
-                  {registerError && (
-                    <p className="login-message login-error" role="alert">
-                      {registerError}
-                    </p>
-                  )}
-
-                  <label>
-                    Correo electrónico
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="nombre@ejemplo.com"
-                      autoComplete="email"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    Contraseña
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    Repite la contraseña
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      required
-                    />
-                  </label>
-
-                  <div className="login-form-actions">
-                    <button type="submit" disabled={isRegisteringAccount || !isFirebaseConfigured}>
-                      {isRegisteringAccount ? 'Creando cuenta…' : 'Crear cuenta'}
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      disabled={isRegisteringAccount}
-                      onClick={() => {
-                        setRegisterError('')
-                        setIsCreatingAccount(false)
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <form className="login-form" onSubmit={handleLogin}>
-                  {!isFirebaseConfigured && (
-                    <p className="login-message login-error" role="alert">
-                      Firebase no está configurado. Completa las variables de entorno del archivo
-                      <code> .env.local</code> y reinicia la aplicación.
-                    </p>
-                  )}
-                  {loginError && (
-                    <p className="login-message login-error" role="alert">
-                      {loginError}
-                    </p>
-                  )}
-                  <label>
-                    Correo electrónico
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="nombre@ejemplo.com"
-                      autoComplete="email"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    Contraseña
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      required
-                    />
-                  </label>
-
-                  <button type="submit" disabled={isSubmitting || !isFirebaseConfigured}>
-                    {isSubmitting ? 'Iniciando sesión…' : 'Entrar'}
-                  </button>
-
-                  <p className="login-link">
-                    ¿No tienes cuenta?{' '}
-                    <a
-                      href="#register"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setLoginError('')
-                        setRegisterError('')
-                        setIsCreatingAccount(true)
-                      }}
-                    >
-                      Crea una aquí
-                    </a>
-                  </p>
-                </form>
               )}
-            </div>
-          </section>
-        </section>
+              {registerError && (
+                <p className="login-message login-error" role="alert">
+                  {registerError}
+                </p>
+              )}
 
-        <section id="benefits" className="benefits">
-          <div className="benefits-copy">
-            <p className="eyebrow">¿Por qué elegir el Sistema de Gestión de PRUFODIS?</p>
-            <h2>Una solución clara, eficiente y centrada en el rendimiento escolar.</h2>
-          </div>
+              <label>
+                Correo electrónico
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="nombre@ejemplo.com"
+                  autoComplete="email"
+                  required
+                />
+              </label>
 
-          <ul className="benefits-list">
-            <li>Automatización de tareas repetitivas</li>
-            <li>Visibilidad real del progreso académico</li>
-            <li>Gestión centralizada de información</li>
-            <li>Acceso rápido desde cualquier dispositivo</li>
-          </ul>
-        </section>
-      </main>
-    </div>
+              <label>
+                Contraseña
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+
+              <label>
+                Repite la contraseña
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+
+              <div className="login-form-actions">
+                <button type="submit" disabled={isRegisteringAccount || !isFirebaseConfigured}>
+                  {isRegisteringAccount ? 'Creando cuenta…' : 'Crear cuenta'}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={isRegisteringAccount}
+                  onClick={() => {
+                    setRegisterError('')
+                    setIsCreatingAccount(false)
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form className="login-form" onSubmit={handleLogin}>
+              {!isFirebaseConfigured && (
+                <p className="login-message login-error" role="alert">
+                  Firebase no está configurado. Completa las variables de entorno del archivo
+                  <code> .env.local</code> y reinicia la aplicación.
+                </p>
+              )}
+              {loginError && (
+                <p className="login-message login-error" role="alert">
+                  {loginError}
+                </p>
+              )}
+              <label>
+                Correo electrónico
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="nombre@ejemplo.com"
+                  autoComplete="email"
+                  required
+                />
+              </label>
+
+              <label>
+                Contraseña
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+
+              <button type="submit" disabled={isSubmitting || !isFirebaseConfigured}>
+                {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
+              </button>
+
+              <p className="login-link">
+                ¿No tienes cuenta?{' '}
+                <a
+                  href="#register"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setLoginError('')
+                    setRegisterError('')
+                    setIsCreatingAccount(true)
+                  }}
+                >
+                  Crea una aquí
+                </a>
+              </p>
+            </form>
+          )}
+        </div>
+      </section>
+    </main>
   )
 }
 
