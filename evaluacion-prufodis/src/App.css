@@ -4,6 +4,233 @@
   padding: 24px clamp(16px, 3vw, 48px) 64px;
 }
 
+.landing-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100svh;
+  color: #17212b;
+  text-align: left;
+}
+
+.landing-mobile-nav {
+  display: none;
+}
+
+.landing-visual {
+  position: relative;
+  display: flex;
+  flex: 1.15;
+  min-width: 0;
+  min-height: 100svh;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(28px, 5vw, 72px);
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+  isolation: isolate;
+}
+
+.landing-visual-shade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 25, 49, 0.3), rgba(0, 18, 38, 0.75));
+}
+
+.landing-brand,
+.landing-message {
+  position: relative;
+}
+
+.landing-brand img {
+  width: min(220px, 55vw);
+  max-height: 86px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.landing-message {
+  max-width: 640px;
+}
+
+.landing-eyebrow {
+  margin: 0 0 16px;
+  color: #004680;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-message .landing-eyebrow {
+  color: #d7eaff;
+}
+
+.landing-message h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2.2rem, 4vw, 4rem);
+  line-height: 1.08;
+}
+
+.landing-message > p:last-child {
+  max-width: 510px;
+  margin-top: 20px;
+  color: #f0f5fa;
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+.landing-login {
+  display: grid;
+  flex: 0.85;
+  min-width: 380px;
+  min-height: 100svh;
+  place-items: center;
+  padding: clamp(28px, 6vw, 88px);
+  background: #fff;
+}
+
+.landing-login-content {
+  width: min(100%, 430px);
+}
+
+.landing-login .login-copy h2 {
+  margin: 0;
+  color: #17212b;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.landing-login .login-copy > p:last-child {
+  margin: 12px 0 30px;
+  color: #5b6672;
+  line-height: 1.6;
+}
+
+.landing-login .login-form {
+  gap: 20px;
+}
+
+.landing-login .login-form label {
+  color: #253444;
+  font-size: 0.94rem;
+}
+
+.landing-login .login-form input {
+  min-height: 50px;
+  border: 1px solid #cbd4dd;
+  border-radius: 6px;
+  background: #fff;
+  color: #17212b;
+}
+
+.landing-login .login-form input::placeholder {
+  color: #77828d;
+}
+
+.landing-login .login-form input:focus {
+  border-color: #004680;
+  box-shadow: 0 0 0 3px rgba(0, 70, 128, 0.15);
+}
+
+.landing-login .login-form button:not(.secondary-button) {
+  min-height: 50px;
+  border-radius: 6px;
+  background: #002147;
+  box-shadow: none;
+}
+
+.landing-login .login-form button:not(.secondary-button):hover {
+  background: #003366;
+}
+
+.landing-login .login-form .secondary-button {
+  border: 1px solid #b8c5d1;
+  border-radius: 6px;
+  background: #fff;
+  color: #253444;
+  box-shadow: none;
+}
+
+.landing-login .login-link {
+  color: #596572;
+}
+
+.landing-login .login-link a {
+  color: #004680;
+}
+
+.landing-login .login-message {
+  border-color: #f0b5b5;
+  background: #fff4f4;
+  color: #8c2525;
+}
+
+.landing-login .login-message code {
+  color: inherit;
+}
+
+@media (max-width: 760px) {
+  .landing-layout {
+    flex-direction: column;
+    padding-top: 68px;
+  }
+
+  .landing-mobile-nav {
+    position: fixed;
+    z-index: 20;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 68px;
+    padding: 10px 22px;
+    background: #002147;
+  }
+
+  .landing-mobile-nav img {
+    width: min(174px, 52vw);
+    max-height: 48px;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .landing-login {
+    order: 1;
+    flex: none;
+    min-width: 0;
+    min-height: calc(100svh - 68px);
+    padding: 36px 24px;
+  }
+
+  .landing-login .login-copy h2 {
+    font-size: 1.8rem;
+  }
+
+  .landing-visual {
+    order: 2;
+    flex: none;
+    min-height: 44svh;
+    padding: 28px 24px;
+  }
+
+  .landing-brand img {
+    display: none;
+  }
+
+  .landing-message h1 {
+    font-size: 2rem;
+  }
+
+  .landing-message > p:last-child {
+    margin-top: 12px;
+    font-size: 0.96rem;
+  }
+}
+
 .topbar {
   display: flex;
   align-items: center;
