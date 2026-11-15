@@ -342,6 +342,39 @@
   text-decoration: none;
 }
 
+.pedagogical-skills-filter {
+  display: flex;
+  max-width: 360px;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: #cbd5e1;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.pedagogical-skills-filter select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(2, 8, 23, 0.55);
+  color: #f8fafc;
+}
+
+.pedagogical-skills-filter select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.pedagogical-skills-filter option,
+.pedagogical-skill-form option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
 .pedagogical-skills-empty {
   padding: 24px 16px;
 }
@@ -363,6 +396,18 @@
   color: #f8fafc;
   cursor: pointer;
   font-weight: 600;
+}
+
+.pedagogical-skill-type {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 3px 8px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 999px;
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
 }
 
 .pedagogical-skill summary:focus-visible {
@@ -398,6 +443,7 @@
 }
 
 .pedagogical-skill-form input,
+.pedagogical-skill-form select,
 .pedagogical-skill-form textarea {
   width: 100%;
   padding: 10px 12px;
@@ -413,14 +459,18 @@
   min-height: 46px;
 }
 
+.pedagogical-skill-form select {
+  min-height: 46px;
+}
+
 .pedagogical-skill-form textarea {
   min-height: 140px;
   resize: vertical;
 }
 
 .pedagogical-skill-form input:focus,
+.pedagogical-skill-form select:focus,
 .pedagogical-skill-form textarea:focus {
   border-color: #60a5fa;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
-

@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
+import {
+  competencyTypeLabels,
+  competencyTypes,
+  getCompetencyType,
+  parseCompetencyType,
+  type CompetencyType,
+} from '../utils/competencies'
 import type { Student } from './AlumnosPage'
 
 export type PedagogicalSkill = {
@@ -8,6 +15,7 @@ export type PedagogicalSkill = {
   studentId: number
   title: string
   description: string
+  competencyType: CompetencyType
 }
 
 type HabilidadesPedagogicasPageProps = {
@@ -29,6 +37,9 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
   const navigate = useNavigate()
   const [title, setTitle] = useState(skill?.title ?? '')
   const [description, setDescription] = useState(skill?.description ?? '')
+  const [competencyType, setCompetencyType] = useState(
+    getCompetencyType(skill?.competencyType),
+  )
   const [saveError, setSaveError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const profilePath = `/menu/alumnos/${student.id}`
@@ -40,7 +51,7 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
     const trimmedTitle = title.trim()
     const trimmedDescription = description.trim()
     if (!trimmedTitle || !trimmedDescription) {
-      setSaveError('Ingresa un título y una descripción para la habilidad.')
+      setSaveError('Ingresa un título y una descripción para la competencia.')
       return
     }
 
@@ -52,12 +63,13 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
         studentId: student.id,
         title: trimmedTitle,
         description: trimmedDescription,
+        competencyType,
       })
       navigate(profilePath)
     } catch (error: unknown) {
-      console.error('No se pudo guardar la habilidad pedagógica en Firebase.', error)
+      console.error('No se pudo guardar la competencia en Firebase.', error)
       setSaveError(
-        error instanceof Error ? error.message : 'No se pudo guardar la habilidad pedagógica.',
+        error instanceof Error ? error.message : 'No se pudo guardar la competencia.',
       )
     } finally {
       setIsSaving(false)
@@ -70,13 +82,13 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
       <main className="dashboard-content">
         <header className="dashboard-header students-header">
           <DashboardPageTitle>
-            <h1>{skill ? 'Editar habilidad' : 'Agregar habilidad'}</h1>
+            <h1>{skill ? 'Editar competencia' : 'Agregar competencia'}</h1>
           </DashboardPageTitle>
         </header>
 
         <section className="students-panel" aria-labelledby="pedagogical-skill-form-title">
           <h2 id="pedagogical-skill-form-title">
-            {skill ? 'Actualiza la habilidad pedagógica' : 'Nueva habilidad pedagógica'}
+            {skill ? 'Actualiza la competencia' : 'Nueva competencia'}
           </h2>
           {saveError && <p className="assignment-validation" role="alert">{saveError}</p>}
           <form className="pedagogical-skill-form" onSubmit={saveSkill}>
@@ -90,6 +102,24 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
               />
+            </label>
+            <label>
+              Tipo de competencia
+              <select
+                name="competencyType"
+                required
+                value={competencyType}
+                onChange={(event) => {
+                  const nextType = parseCompetencyType(event.target.value)
+                  if (nextType !== null) setCompetencyType(nextType)
+                }}
+              >
+                {competencyTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {competencyTypeLabels[type]}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Descripción

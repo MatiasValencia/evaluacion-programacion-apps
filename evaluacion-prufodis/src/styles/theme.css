@@ -244,7 +244,9 @@
   .login-form input,
   .student-form input,
   .pedagogical-skill-form input,
+  .pedagogical-skill-form select,
   .pedagogical-skill-form textarea,
+  .pedagogical-skills-filter select,
   .assignment-form input,
   .attendance-field input,
   .attendance-field select,
@@ -262,7 +264,9 @@
   .login-form input,
   .student-form input,
   .pedagogical-skill-form input,
+  .pedagogical-skill-form select,
   .pedagogical-skill-form textarea,
+  .pedagogical-skills-filter select,
   .assignment-form input,
   .attendance-field input,
   .attendance-field select,
@@ -275,7 +279,12 @@
   box-shadow: 0 0 0 3px rgba(0, 70, 128, 0.15);
 }
 
-.dashboard-shell :is(.attendance-field option, .grade-options) {
+.dashboard-shell :is(
+  .attendance-field option,
+  .pedagogical-skill-form option,
+  .pedagogical-skills-filter option,
+  .grade-options
+) {
   background: #fff;
   color: #000;
 }
@@ -349,4 +358,3 @@
 .dashboard-shell .sidebar {
   border-color: #d6dde5;
 }
-
