@@ -1,0 +1,134 @@
+@media (max-width: 900px) {
+  .hero,
+  .benefits,
+  .login-card {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-copy {
+    order: 2;
+  }
+
+  .hero-login {
+    order: 1;
+  }
+
+  .nav {
+    gap: 16px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .assignment-student-list {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-datetime-fields,
+  .attendance-details,
+  .assignment-grade-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-student-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .attendance-options {
+    gap: 12px;
+  }
+
+  .assignment-row-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .grade-entry-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .grade-options {
+    flex-direction: column;
+    min-width: 132px;
+  }
+
+  .evaluation-table-wrapper {
+    margin-left: 0;
+  }
+
+  .evaluation-table th,
+  .evaluation-table td {
+    padding: 12px 10px;
+  }
+
+  .hero {
+    padding-top: 48px;
+  }
+
+  .hero-login {
+    grid-row: 1;
+  }
+
+  .hero-copy {
+    grid-row: 2;
+  }
+
+  .hero-login .login-card {
+    padding: 22px 18px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  }
+
+  .dashboard-content {
+    padding: 24px 18px;
+  }
+
+  .dashboard-stat-grid,
+  .dashboard-grade-rankings {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-stat-card,
+  .dashboard-section {
+    padding: 22px 18px;
+  }
+
+  .dashboard-section-heading,
+  .dashboard-record {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-record-counts {
+    justify-content: flex-start;
+  }
+
+  .students-panel {
+    padding: 22px 18px;
+  }
+}
+

@@ -1,0 +1,137 @@
+@media (max-width: 760px) {
+  .page-shell {
+    padding-inline: 16px;
+  }
+
+  .topbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .brand {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .brand > span:last-child {
+    line-height: 1.25;
+  }
+
+  .landing-menu-toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  .topbar .nav {
+    display: none;
+    flex: 1 0 100%;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 8px;
+  }
+
+  .topbar .nav.nav-open {
+    display: flex;
+  }
+
+  .topbar .nav a {
+    padding: 10px 4px;
+    text-align: left;
+  }
+
+  .dashboard-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    flex: 0 0 auto;
+    padding: 14px 18px;
+  }
+
+  .sidebar-top {
+    min-height: 44px;
+  }
+
+  .sidebar-brand-group {
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  .sidebar-brand {
+    font-size: 1.2rem;
+  }
+
+  .dashboard-menu-toggle {
+    display: inline-flex;
+  }
+
+  .sidebar-nav {
+    display: none;
+    padding-top: 14px;
+  }
+
+  .sidebar-open .sidebar-nav {
+    display: flex;
+  }
+
+  .dashboard-content {
+    width: 100%;
+    padding: 24px 16px;
+  }
+
+  .students-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .login-card {
+    padding: 24px 18px;
+  }
+
+  .students-list-heading,
+  .student-row,
+  .students-header,
+  .pedagogical-skills-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .students-list-heading .primary-button,
+  .pedagogical-skills-heading .primary-button,
+  .student-form-actions .secondary-button {
+    width: 100%;
+  }
+
+  .student-actions,
+  .student-delete-confirmation {
+    justify-content: flex-start;
+  }
+
+  .student-form {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .student-profile-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-profile-photo {
+    width: 132px;
+    height: 132px;
+  }
+
+  .student-profile-details {
+    grid-template-columns: 1fr;
+  }
+
+  .student-form-actions {
+    grid-column: auto;
+  }
+}
+
