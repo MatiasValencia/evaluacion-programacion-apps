@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
+import { competencyTypeLabels, getCompetencyType, parseCompetencyType, type CompetencyType } from '../utils/competencies'
 import type { PedagogicalSkill } from './HabilidadesPedagogicasPage'
 import { matchesSearch } from '../utils/search'
 
@@ -80,6 +81,7 @@ const AlumnosPage = ({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null)
   const [confirmingSkillDeleteId, setConfirmingSkillDeleteId] = useState<string | null>(null)
   const [skillDeleteError, setSkillDeleteError] = useState('')
+  const [competencyFilter, setCompetencyFilter] = useState<CompetencyType | 'todas'>('todas')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -88,6 +90,14 @@ const AlumnosPage = ({
 
   const selectedStudentId = studentId === undefined ? null : Number(studentId)
   const selectedStudent = students.find((student) => student.id === selectedStudentId)
+  const studentCompetencies = pedagogicalSkills.filter(
+    (competency) => competency.studentId === selectedStudent?.id,
+  )
+  const filteredCompetencies = studentCompetencies.filter(
+    (competency) =>
+      competencyFilter === 'todas' ||
+      getCompetencyType(competency.competencyType) === competencyFilter,
+  )
 
   const filteredStudents = students.filter((student) =>
     matchesSearch(
@@ -181,9 +191,9 @@ const AlumnosPage = ({
       setConfirmingSkillDeleteId(null)
       setSkillDeleteError('')
     } catch (error: unknown) {
-      console.error('No se pudo eliminar la habilidad pedagógica en Firebase.', error)
+      console.error('No se pudo eliminar la competencia en Firebase.', error)
       setSkillDeleteError(
-        error instanceof Error ? error.message : 'No se pudo eliminar la habilidad pedagógica.',
+        error instanceof Error ? error.message : 'No se pudo eliminar la competencia.',
       )
     }
   }
@@ -376,81 +386,108 @@ const AlumnosPage = ({
             <section className="pedagogical-skills" aria-labelledby="pedagogical-skills-title">
               <div className="pedagogical-skills-heading">
                 <div>
-                  <h3 id="pedagogical-skills-title">Habilidades pedagógicas</h3>
-                  <p>Habilidades registradas para este alumno.</p>
+                  <h3 id="pedagogical-skills-title">Competencias</h3>
+                  <p>Competencias registradas para este alumno.</p>
                 </div>
                 {canEdit && (
                   <Link
                     className="primary-button"
                     to={`/menu/alumnos/${selectedStudent.id}/habilidades/nueva`}
                   >
-                    <span aria-hidden="true">+</span> Agregar habilidad
+                    <span aria-hidden="true">+</span> Agregar competencia
                   </Link>
                 )}
               </div>
+              <label className="pedagogical-skills-filter">
+                Filtrar competencias
+                <select
+                  value={competencyFilter}
+                  onChange={(event) => {
+                    if (event.target.value === 'todas') {
+                      setCompetencyFilter('todas')
+                      return
+                    }
+                    const nextType = parseCompetencyType(event.target.value)
+                    if (nextType !== null) setCompetencyFilter(nextType)
+                  }}
+                >
+                  <option value="todas">Todas las competencias</option>
+                  <option value="basica">Competencias básicas</option>
+                  <option value="generica">Competencias genéricas</option>
+                  <option value="especifica">Competencias específicas</option>
+                </select>
+              </label>
               {skillDeleteError && (
                 <p className="assignment-validation" role="alert">{skillDeleteError}</p>
               )}
-              {pedagogicalSkills.filter((skill) => skill.studentId === selectedStudent.id).length === 0 ? (
+              {studentCompetencies.length === 0 ? (
                 <div className="students-empty-state pedagogical-skills-empty">
-                  <p>Aún no hay habilidades registradas.</p>
-                  {canEdit && <span>Agrega una habilidad para completar la ficha del alumno.</span>}
+                  <p>Aún no hay competencias registradas.</p>
+                  {canEdit && <span>Agrega una competencia para completar la ficha del alumno.</span>}
+                </div>
+              ) : filteredCompetencies.length === 0 ? (
+                <div className="students-empty-state pedagogical-skills-empty">
+                  <p>No hay competencias de este tipo.</p>
+                  <span>Prueba con otro filtro para ver más competencias.</span>
                 </div>
               ) : (
                 <div className="pedagogical-skills-list">
-                  {pedagogicalSkills
-                    .filter((skill) => skill.studentId === selectedStudent.id)
-                    .map((skill) => (
-                      <details className="pedagogical-skill" key={skill.id}>
-                        <summary>{skill.title}</summary>
-                        <div className="pedagogical-skill-content">
-                          <p>{skill.description}</p>
-                          {canEdit && (
-                            <div className="student-actions">
-                              {confirmingSkillDeleteId === skill.id ? (
-                                <div
-                                  className="student-delete-confirmation"
-                                  role="group"
-                                  aria-label={`Confirmar eliminación de ${skill.title}`}
+                  {filteredCompetencies.map((skill) => (
+                    <details className="pedagogical-skill" key={skill.id}>
+                      <summary>
+                        {skill.title}
+                        <span className="pedagogical-skill-type">
+                          {competencyTypeLabels[getCompetencyType(skill.competencyType)]}
+                        </span>
+                      </summary>
+                      <div className="pedagogical-skill-content">
+                        <p>{skill.description}</p>
+                        {canEdit && (
+                          <div className="student-actions">
+                            {confirmingSkillDeleteId === skill.id ? (
+                              <div
+                                className="student-delete-confirmation"
+                                role="group"
+                                aria-label={`Confirmar eliminación de ${skill.title}`}
+                              >
+                                <span>¿Eliminar esta competencia?</span>
+                                <button
+                                  className="student-action-button student-delete-button"
+                                  type="button"
+                                  onClick={() => void deleteSkill(skill.id)}
                                 >
-                                  <span>¿Eliminar esta habilidad?</span>
-                                  <button
-                                    className="student-action-button student-delete-button"
-                                    type="button"
-                                    onClick={() => void deleteSkill(skill.id)}
-                                  >
-                                    Confirmar
-                                  </button>
-                                  <button
-                                    className="student-action-button"
-                                    type="button"
-                                    onClick={() => setConfirmingSkillDeleteId(null)}
-                                  >
-                                    Cancelar
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  <Link
-                                    className="student-action-button"
-                                    to={`/menu/alumnos/${selectedStudent.id}/habilidades/${skill.id}/editar`}
-                                  >
-                                    Editar
-                                  </Link>
-                                  <button
-                                    className="student-action-button student-delete-button"
-                                    type="button"
-                                    onClick={() => setConfirmingSkillDeleteId(skill.id)}
-                                  >
-                                    Eliminar
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    ))}
+                                  Confirmar
+                                </button>
+                                <button
+                                  className="student-action-button"
+                                  type="button"
+                                  onClick={() => setConfirmingSkillDeleteId(null)}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <Link
+                                  className="student-action-button"
+                                  to={`/menu/alumnos/${selectedStudent.id}/habilidades/${skill.id}/editar`}
+                                >
+                                  Editar
+                                </Link>
+                                <button
+                                  className="student-action-button student-delete-button"
+                                  type="button"
+                                  onClick={() => setConfirmingSkillDeleteId(skill.id)}
+                                >
+                                  Eliminar
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  ))}
                 </div>
               )}
             </section>
