@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import logo from '../assets/logo.png'
+import { firebaseAuth } from '../firebase'
 
 const menuItems = [
   { to: '/menu/alumnos', label: 'Alumnos' },
@@ -16,6 +17,9 @@ type DashboardSidebarProps = {
 
 const DashboardSidebar = ({ onLogout }: DashboardSidebarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const user = firebaseAuth?.currentUser
+  const accountLabel = user?.displayName?.trim() || user?.email || 'Usuario'
 
   return (
     <aside className={`sidebar ${isMenuOpen ? 'sidebar-open' : ''}`}>
@@ -53,9 +57,42 @@ const DashboardSidebar = ({ onLogout }: DashboardSidebarProps) => {
             </NavLink>
           ))}
         </div>
-        <button className="sidebar-logout" type="button" onClick={onLogout}>
-          Cerrar sesión
-        </button>
+        <div className="sidebar-account">
+          <button
+            className="sidebar-account-toggle"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={isAccountMenuOpen}
+            onClick={() => setIsAccountMenuOpen((open) => !open)}
+          >
+            {accountLabel}
+            <span aria-hidden="true">⌄</span>
+          </button>
+          {isAccountMenuOpen && (
+            <div className="sidebar-account-menu" role="menu">
+              <NavLink
+                to="/menu/configurar-usuario"
+                role="menuitem"
+                onClick={() => {
+                  setIsAccountMenuOpen(false)
+                  setIsMenuOpen(false)
+                }}
+              >
+                Configurar usuario
+              </NavLink>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsAccountMenuOpen(false)
+                  onLogout()
+                }}
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
     </aside>
   )

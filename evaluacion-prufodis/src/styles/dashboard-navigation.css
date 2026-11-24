@@ -65,19 +65,67 @@
   color: #fff;
 }
 
-.dashboard-shell .sidebar-logout {
+.dashboard-shell .sidebar-account {
   position: absolute;
   right: 32px;
-  width: auto;
-  padding: 10px 12px;
-  color: #ffb3b3;
   pointer-events: auto;
 }
 
-.dashboard-shell .sidebar-logout:hover {
-  border-color: transparent;
-  background: rgba(255, 255, 255, 0.16);
+.sidebar-account-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 10px 12px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
   color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sidebar-account-toggle:hover,
+.sidebar-account-toggle[aria-expanded='true'] {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.sidebar-account-menu {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid #d6dde5;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 33, 71, 0.16);
+}
+
+.sidebar-account-menu :is(a, button) {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #000;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sidebar-account-menu :is(a, button):hover {
+  background: #e7eef4;
+}
+
+.sidebar-account-menu button {
+  color: #b91c1c;
 }
 
 .dashboard-shell .dashboard-menu-toggle {
@@ -165,10 +213,17 @@
     padding: 10px 12px;
   }
 
-  .dashboard-shell .sidebar-logout {
-    position: static;
-    width: 100%;
-    text-align: left;
+  .dashboard-shell .sidebar-account {
+    position: relative;
+  }
+
+  .sidebar-account-toggle {
+    max-width: 100%;
+  }
+
+  .sidebar-account-menu {
+    top: calc(100% + 6px);
+    right: 0;
   }
 
   .dashboard-page-title {
