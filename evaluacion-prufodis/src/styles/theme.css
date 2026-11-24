@@ -217,6 +217,25 @@
   color: #fff;
 }
 
+.dashboard-shell .sidebar-account-toggle {
+  color: #fff;
+}
+
+.dashboard-shell .sidebar-account-toggle:hover,
+.dashboard-shell .sidebar-account-toggle[aria-expanded='true'] {
+  color: #fff;
+}
+
+.dashboard-shell .sidebar-account-menu button {
+  color: #b91c1c;
+}
+
+.dashboard-shell .login-error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .dashboard-shell :is(
   .student-action-button,
   .grade-add-button,

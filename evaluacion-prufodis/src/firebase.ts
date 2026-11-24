@@ -1,11 +1,16 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import {
+  EmailAuthProvider,
   getAuth,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
   type User,
+  updateEmail,
+  updatePassword,
+  updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, getFirestore } from 'firebase/firestore'
+import { doc, getDoc, getFirestore, updateDoc } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 
 const firebaseConfig = {
@@ -43,6 +48,17 @@ const readOnlyUids = parseUidList(import.meta.env.VITE_FIREBASE_READONLY_UIDS)
 
 export type UserRole = 'admin' | 'readOnly'
 
+export type UserProfile = {
+  firstName: string
+  lastName: string
+}
+
+export type UserProfileChanges = UserProfile & {
+  email: string
+  currentPassword: string
+  newPassword: string
+}
+
 export const isAdminUid = (uid: string) => adminUids.includes(uid)
 export const isReadOnlyUid = (uid: string) => readOnlyUids.includes(uid)
 
@@ -76,6 +92,74 @@ export const getUserRole = async (uid: string): Promise<UserRole> => {
   }
 
   return role
+}
+
+export const getUserProfile = async (user: User): Promise<UserProfile> => {
+  if (firebaseDb === null) {
+    throw new Error('Firebase no está configurado. Completa las variables de entorno.')
+  }
+
+  const profileSnapshot = await getDoc(doc(firebaseDb, 'users', user.uid))
+  const profile = profileSnapshot.data()
+  const displayName = user.displayName?.trim() ?? ''
+
+  return {
+    firstName:
+      typeof profile?.firstName === 'string'
+        ? profile.firstName
+        : displayName,
+    lastName: typeof profile?.lastName === 'string' ? profile.lastName : '',
+  }
+}
+
+export const updateUserProfile = async (
+  user: User,
+  changes: UserProfileChanges,
+): Promise<void> => {
+  if (firebaseDb === null) {
+    throw new Error('Firebase no está configurado. Completa las variables de entorno.')
+  }
+
+  const email = changes.email.trim()
+  const firstName = changes.firstName.trim()
+  const lastName = changes.lastName.trim()
+  const emailChanged = email.toLowerCase() !== (user.email ?? '').toLowerCase()
+  const passwordChanged = changes.newPassword.length > 0
+
+  if (passwordChanged && changes.newPassword === changes.currentPassword) {
+    throw new Error('La contraseña nueva debe ser distinta de la contraseña actual.')
+  }
+
+  if ((emailChanged || passwordChanged) && changes.currentPassword.length === 0) {
+    throw new Error('Introduce tu contraseña actual para cambiar tus credenciales.')
+  }
+
+  if (emailChanged || passwordChanged) {
+    if (user.email === null) {
+      throw new Error('La cuenta no tiene un correo electrónico para revalidar la sesión.')
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, changes.currentPassword)
+    await reauthenticateWithCredential(user, credential)
+  }
+
+  if (emailChanged) {
+    await updateEmail(user, email)
+    await user.reload()
+    await user.getIdToken(true)
+  }
+
+  const displayName = [firstName, lastName].filter(Boolean).join(' ')
+  await updateProfile(user, { displayName: displayName || null })
+  await updateDoc(doc(firebaseDb, 'users', user.uid), {
+    firstName,
+    lastName,
+    email: user.email,
+  })
+
+  if (passwordChanged) {
+    await updatePassword(user, changes.newPassword)
+  }
 }
 
 export const createAccount = async (email: string, password: string): Promise<User> => {

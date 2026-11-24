@@ -12,6 +12,7 @@ import HabilidadesPedagogicasPage, {
   type PedagogicalSkill,
 } from './pages/HabilidadesPedagogicasPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
+import UserSettingsPage from './pages/UserSettingsPage'
 import {
   authenticateUser,
   firebaseAuth,
@@ -387,6 +388,16 @@ function App() {
                 onGradesSave={saveEvaluationGrades}
                 onLogout={handleLogout}
               />
+            }
+          />
+          <Route
+            path="configurar-usuario"
+            element={
+              authenticatedUser ? (
+                <UserSettingsPage user={authenticatedUser} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/" replace />
+              )
             }
           />
         </Route>
