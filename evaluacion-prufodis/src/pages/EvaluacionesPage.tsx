@@ -140,7 +140,9 @@ const EvaluacionesPage = ({
   const saveChanges = async () => {
     if (!canEdit || isSaving) return
     if (inputTarget) {
-      setValidationMessage('Presiona Enter para guardar la nota antes de guardar los cambios.')
+      setValidationMessage(
+        'La celda correspondiente a la nota está sin datos. Presiona Enter para guardar la nota antes de guardar los cambios.',
+      )
       return
     }
 
