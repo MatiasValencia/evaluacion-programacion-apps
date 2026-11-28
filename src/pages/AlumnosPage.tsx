@@ -58,6 +58,7 @@ const readStudentPhoto = async (file: File): Promise<string> => {
 type AlumnosPageProps = {
   students: Student[]
   canEdit: boolean
+  canEditSkills: boolean
   pedagogicalSkills: PedagogicalSkill[]
   onSkillDelete: (skillId: string) => Promise<void>
   onStudentSave: (student: Student) => Promise<void>
@@ -68,6 +69,7 @@ type AlumnosPageProps = {
 const AlumnosPage = ({
   students,
   canEdit,
+  canEditSkills,
   pedagogicalSkills,
   onSkillDelete,
   onStudentSave,
@@ -156,15 +158,15 @@ const AlumnosPage = ({
     const { foto, ...studentFields } = form
     const student: Student = {
       ...studentFields,
-      ...(foto ? { foto } : {}),
-      id: editingId ?? Date.now(),
+      foto,
+      id: editingId ?? 0,
     }
     setIsSaving(true)
     try {
       await onStudentSave(student)
       cancelForm()
     } catch (error: unknown) {
-      console.error('No se pudo guardar el alumno en Firebase.', error)
+      console.error('No se pudo guardar el alumno en el backend.', error)
       setSaveError(error instanceof Error ? error.message : 'No se pudo guardar el alumno.')
     } finally {
       setIsSaving(false)
@@ -179,19 +181,19 @@ const AlumnosPage = ({
       setSaveError('')
       if (selectedStudentId === id) navigate('/menu/alumnos')
     } catch (error: unknown) {
-      console.error('No se pudo eliminar el alumno en Firebase.', error)
+      console.error('No se pudo eliminar el alumno en el backend.', error)
       setSaveError(error instanceof Error ? error.message : 'No se pudo eliminar el alumno.')
     }
   }
 
   const deleteSkill = async (skillId: string) => {
-    if (!canEdit) return
+    if (!canEditSkills) return
     try {
       await onSkillDelete(skillId)
       setConfirmingSkillDeleteId(null)
       setSkillDeleteError('')
     } catch (error: unknown) {
-      console.error('No se pudo eliminar la competencia en Firebase.', error)
+      console.error('No se pudo eliminar la competencia en el backend.', error)
       setSkillDeleteError(
         error instanceof Error ? error.message : 'No se pudo eliminar la competencia.',
       )
@@ -389,7 +391,7 @@ const AlumnosPage = ({
                   <h3 id="pedagogical-skills-title">Competencias</h3>
                   <p>Competencias registradas para este alumno.</p>
                 </div>
-                {canEdit && (
+                {canEditSkills && (
                   <Link
                     className="primary-button"
                     to={`/menu/alumnos/${selectedStudent.id}/habilidades/nueva`}
@@ -423,7 +425,7 @@ const AlumnosPage = ({
               {studentCompetencies.length === 0 ? (
                 <div className="students-empty-state pedagogical-skills-empty">
                   <p>Aún no hay competencias registradas.</p>
-                  {canEdit && <span>Agrega una competencia para completar la ficha del alumno.</span>}
+                  {canEditSkills && <span>Agrega una competencia para completar la ficha del alumno.</span>}
                 </div>
               ) : filteredCompetencies.length === 0 ? (
                 <div className="students-empty-state pedagogical-skills-empty">
@@ -442,7 +444,7 @@ const AlumnosPage = ({
                       </summary>
                       <div className="pedagogical-skill-content">
                         <p>{skill.description}</p>
-                        {canEdit && (
+                        {canEditSkills && (
                           <div className="student-actions">
                             {confirmingSkillDeleteId === skill.id ? (
                               <div

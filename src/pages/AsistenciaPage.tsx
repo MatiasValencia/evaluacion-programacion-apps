@@ -316,7 +316,7 @@ const AsistenciaPage = ({
       setEditingId(null)
       navigate('/menu/asistencia')
     } catch (error: unknown) {
-      console.error('No se pudo guardar la asistencia en Firebase.', error)
+      console.error('No se pudo guardar la asistencia en el backend.', error)
       setValidationMessage(
         error instanceof Error ? error.message : 'No se pudo guardar la asistencia.',
       )
@@ -342,7 +342,7 @@ const AsistenciaPage = ({
       setDeleteConfirmationStep(1)
       setValidationMessage('')
     } catch (error: unknown) {
-      console.error('No se pudo eliminar la asistencia en Firebase.', error)
+      console.error('No se pudo eliminar la asistencia en el backend.', error)
       setValidationMessage(
         error instanceof Error ? error.message : 'No se pudo eliminar la asistencia.',
       )

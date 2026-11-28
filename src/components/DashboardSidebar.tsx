@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import logo from '../assets/logo.png'
-import { firebaseAuth } from '../firebase'
+import { AuthContext } from '../auth-context'
 
 const menuItems = [
   { to: '/menu/alumnos', label: 'Alumnos' },
@@ -18,8 +18,9 @@ type DashboardSidebarProps = {
 const DashboardSidebar = ({ onLogout }: DashboardSidebarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const user = firebaseAuth?.currentUser
-  const accountLabel = user?.displayName?.trim() || user?.email || 'Usuario'
+  const user = useContext(AuthContext)
+  const accountLabel =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Usuario'
 
   return (
     <aside className={`sidebar ${isMenuOpen ? 'sidebar-open' : ''}`}>

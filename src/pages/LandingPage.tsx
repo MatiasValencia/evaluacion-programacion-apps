@@ -1,15 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FirebaseError } from 'firebase/app'
-import { createAccount, isFirebaseConfigured } from '../firebase'
+import { ApiError } from '../api'
 import heroImage from '../assets/image1.jpeg'
 import logo from '../assets/logo.png'
 
 type LandingPageProps = {
   onLogin: (email: string, password: string) => Promise<void>
+  onRegister: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) => Promise<void>
 }
 
-const LandingPage = ({ onLogin }: LandingPageProps) => {
+const LandingPage = ({ onLogin, onRegister }: LandingPageProps) => {
   const navigate = useNavigate()
   const [loginError, setLoginError] = useState('')
   const [registerError, setRegisterError] = useState('')
@@ -46,6 +51,8 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
     const formData = new FormData(event.currentTarget)
     const email = String(formData.get('email') ?? '').trim()
     const password = String(formData.get('password') ?? '')
+    const firstName = String(formData.get('firstName') ?? '').trim()
+    const lastName = String(formData.get('lastName') ?? '').trim()
     const confirmPassword = String(formData.get('confirmPassword') ?? '')
 
     try {
@@ -57,11 +64,11 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
         throw new Error('Las contraseñas no coinciden.')
       }
 
-      if (password.length < 6) {
-        throw new Error('La contraseña debe tener al menos 6 caracteres.')
+      if (password.length < 8) {
+        throw new Error('La contraseña debe tener al menos 8 caracteres.')
       }
 
-      await createAccount(email, password)
+      await onRegister(email, password, firstName, lastName)
       navigate('/menu', { replace: true })
     } catch (error) {
       setRegisterError(getRegisterErrorMessage(error))
@@ -94,24 +101,38 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
             <h2>{isCreatingAccount ? 'Crear cuenta' : 'Inicia sesión'}</h2>
             <p>
               {isCreatingAccount
-                ? 'Crea tu cuenta para acceder a la información académica.'
+                ? 'Crea una cuenta de consulta. Un administrador puede asignarte otro rol.'
                 : 'Accede a la plataforma para consultar y gestionar la información académica.'}
             </p>
           </div>
 
           {isCreatingAccount ? (
             <form className="login-form" onSubmit={handleCreateAccount}>
-              {!isFirebaseConfigured && (
-                <p className="login-message login-error" role="alert">
-                  Firebase no está configurado. Completa las variables de entorno del archivo
-                  <code> .env.local</code> y reinicia la aplicación.
-                </p>
-              )}
               {registerError && (
                 <p className="login-message login-error" role="alert">
                   {registerError}
                 </p>
               )}
+
+              <label>
+                Nombre
+                <input
+                  type="text"
+                  name="firstName"
+                  autoComplete="given-name"
+                  maxLength={150}
+                />
+              </label>
+
+              <label>
+                Apellido
+                <input
+                  type="text"
+                  name="lastName"
+                  autoComplete="family-name"
+                  maxLength={150}
+                />
+              </label>
 
               <label>
                 Correo electrónico
@@ -130,6 +151,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                   type="password"
                   name="password"
                   placeholder="••••••••"
+                  minLength={8}
                   autoComplete="new-password"
                   required
                 />
@@ -141,13 +163,14 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                   type="password"
                   name="confirmPassword"
                   placeholder="••••••••"
+                  minLength={8}
                   autoComplete="new-password"
                   required
                 />
               </label>
 
               <div className="login-form-actions">
-                <button type="submit" disabled={isRegisteringAccount || !isFirebaseConfigured}>
+                <button type="submit" disabled={isRegisteringAccount}>
                   {isRegisteringAccount ? 'Creando cuenta…' : 'Crear cuenta'}
                 </button>
                 <button
@@ -165,12 +188,6 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
             </form>
           ) : (
             <form className="login-form" onSubmit={handleLogin}>
-              {!isFirebaseConfigured && (
-                <p className="login-message login-error" role="alert">
-                  Firebase no está configurado. Completa las variables de entorno del archivo
-                  <code> .env.local</code> y reinicia la aplicación.
-                </p>
-              )}
               {loginError && (
                 <p className="login-message login-error" role="alert">
                   {loginError}
@@ -198,7 +215,7 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
                 />
               </label>
 
-              <button type="submit" disabled={isSubmitting || !isFirebaseConfigured}>
+              <button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
               </button>
 
@@ -224,47 +241,12 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
   )
 }
 
-const getLoginErrorMessage = (error: unknown) => {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        return 'Este correo ya está registrado.'
-      case 'auth/invalid-credential':
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-        return 'El correo electrónico o la contraseña no son correctos.'
-      case 'auth/invalid-email':
-        return 'Introduce un correo electrónico válido.'
-      case 'auth/weak-password':
-        return 'La contraseña debe tener al menos 6 caracteres.'
-      case 'auth/too-many-requests':
-        return 'Hubo demasiados intentos. Espera un momento e inténtalo de nuevo.'
-      case 'auth/network-request-failed':
-        return 'No se pudo conectar con Firebase. Comprueba tu conexión e inténtalo de nuevo.'
-      case 'auth/operation-not-allowed':
-        return 'El inicio de sesión con correo y contraseña no está habilitado en Firebase.'
-      case 'functions/already-exists':
-        return 'Este correo ya está registrado.'
-      case 'functions/invalid-argument':
-        return 'Introduce un correo válido y una contraseña de al menos 6 caracteres.'
-      case 'functions/resource-exhausted':
-        return 'Se está creando otra cuenta. Inténtalo de nuevo en un momento.'
-      case 'functions/failed-precondition':
-        return 'Cierra la sesión antes de crear una cuenta.'
-      case 'functions/unavailable':
-      case 'functions/deadline-exceeded':
-        return 'No se pudo conectar con el servicio de registro. Inténtalo de nuevo.'
-      case 'functions/internal':
-        return 'El servicio de registro falló. Revisa los registros de registerAccount en Firebase Console.'
-      case 'functions/not-found':
-        return 'No se encontró registerAccount en el proyecto Firebase configurado para esta aplicación.'
-      default:
-        return `No se pudo completar la operación. Inténtalo de nuevo. (Código Firebase: ${error.code})`
-    }
-  }
-
-  return error instanceof Error ? error.message : 'No se pudo completar la operación. Inténtalo de nuevo.'
-}
+const getLoginErrorMessage = (error: unknown) =>
+  error instanceof ApiError && error.status === 401
+    ? 'El correo electrónico o la contraseña no son correctos.'
+    : error instanceof Error
+      ? error.message
+      : 'No se pudo completar la operación. Inténtalo de nuevo.'
 
 const getRegisterErrorMessage = (error: unknown) => getLoginErrorMessage(error)
 

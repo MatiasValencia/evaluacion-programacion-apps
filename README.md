@@ -1,38 +1,41 @@
-# Evaluación Programación de Aplicaciones - Gestión de Alumnos PRUFODIS Universidad Central de Chile
+# PRUFODIS - Gestión de Alumnos
 
-Aplicación React para administrar alumnos, asignaturas, asistencias y evaluaciones. Los datos se sincronizan en tiempo real con Cloud Firestore para que los administradores autorizados accedan desde distintos dispositivos.
+Frontend React/Vite para administrar alumnos, asignaturas, asistencia, evaluaciones y competencias. La autenticación y los datos usan la API REST de Django desplegada en Render; Firebase ya no forma parte de este proyecto.
 
-## Configurar Firebase
+## Desarrollo local
 
-1. En Firebase Console, registra la aplicación web y habilita el proveedor **Correo electrónico/contraseña** en Authentication.
-2. Crea la base de datos **Cloud Firestore** en modo de producción.
-3. Crea `.env.local` en la raíz a partir de `.env.example` y completa la configuración web de Firebase y los UID de las cuentas administradoras:
-
-   ```env
-   VITE_FIREBASE_API_KEY=...
-   VITE_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=tu-proyecto
-   VITE_FIREBASE_APP_ID=...
-   VITE_FIREBASE_ADMIN_UIDS=uid-admin-1,uid-admin-2
-   ```
-
-4. Copia `firestore.rules` en **Firestore Database → Reglas**. Antes de publicar, reemplaza `REPLACE_WITH_ADMIN_UID` por los UID exactos de las cuentas autorizadas. Si hay más de un administrador, agrega sus UID entre comillas y separados por comas dentro de la lista. Publica las reglas y verifica que la lista coincida con `VITE_FIREBASE_ADMIN_UIDS`.
-5. En **Authentication → Configuración → Dominios autorizados**, autoriza `localhost` para desarrollo y el dominio de producción.
-6. Instala dependencias y ejecuta el proyecto:
+1. Copia `.env.example` como `.env.local`. `VITE_API_BASE_URL=/api` mantiene las peticiones bajo el mismo origen.
+2. Instala dependencias y ejecuta:
 
    ```sh
    npm install
    npm run dev
    ```
 
-La aplicación crea y utiliza estas colecciones: `students`, `assignments`, `attendanceRecords` y `evaluationGrades`. La colección `metadata` registra la migración inicial.
+Vite reenvía `/api/*` al servicio de Render configurado en `API_PROXY_TARGET`; si no se define, usa `https://prufodis-ucen-apirest.onrender.com`. Para apuntar a otro backend local, define `API_PROXY_TARGET` en `.env.local`.
 
-## Datos existentes en localStorage
+## Despliegue en Vercel
 
-Al iniciar sesión por primera vez, si las cuatro colecciones de Firestore están vacías y no existe el marcador `metadata/localStorageMigration`, la aplicación importa los datos de localStorage de ese navegador. Si ya hay documentos en Firestore, estos se consideran la fuente de verdad y no se importan datos locales automáticamente. El marcador evita repetir la importación.
+- Usa `npm run build` como comando de compilación y `dist` como directorio de salida.
+- Importa `.env.example` o configura `VITE_API_BASE_URL=/api` en las variables de entorno de Vercel.
+- `vercel.json` reenvía `/api/*` al servicio de Render y enruta las demás rutas de React. Si cambia la URL del backend, actualiza el destino en `vercel.json`.
+- En Render configura `DJANGO_CSRF_TRUSTED_ORIGINS` con los orígenes HTTPS de producción de Vercel, separados por comas, por ejemplo `https://tu-app.vercel.app,https://tu-dominio.cl`. Después de cambiarlo, vuelve a desplegar el backend.
 
-Por ello, antes de iniciar sesión en el dispositivo que contiene los datos actuales, confirma que las reglas estén publicadas y que Firestore esté vacío. Los datos locales de otros navegadores no se combinan automáticamente; si contienen información distinta, consérvalos y coordina su importación antes de completar la migración inicial.
+El proxy hace que las peticiones del navegador sean del mismo origen que el frontend; no requiere publicar secretos en Vite ni habilitar CORS para este flujo. Los archivos `.env` y `.env.local` están ignorados por Git. No incluyas contraseñas ni secretos del servidor en variables `VITE_*`.
 
-## Seguridad
+## Cuentas y permisos
 
-Los UID de `VITE_FIREBASE_ADMIN_UIDS` limitan la interfaz, pero no son un control de seguridad para la base. Firestore aplica la autorización en el servidor mediante `firestore.rules`, que solo permite leer y escribir a los UID enumerados. No publiques reglas que permitan acceso general a usuarios autenticados o acceso público. Los archivos `.env.local` no deben subirse al repositorio.
+El backend usa sesiones Django y protección CSRF. Las cuentas nuevas creadas desde la pantalla de registro reciben el rol `consulta` (solo lectura). Un administrador puede cambiar el rol desde Django Admin. Los roles del backend son:
+
+- `administrador`: administra alumnos y asignaturas.
+- `profesor`: actualiza alumnos asignados, registra asistencia y evaluaciones.
+- `psicologo`: administra competencias.
+- `consulta`: consulta los datos sin modificarlos.
+
+La edición de correo, nombre y contraseña se realiza en el perfil; los cambios de correo o contraseña requieren la contraseña actual.
+
+## Backend y datos existentes
+
+Antes de desplegar esta versión, publica los cambios del repositorio backend `MatiasValencia/prufodis-ucen-apirest` en Render y ejecuta las migraciones Django, incluidas las nuevas migraciones para el rol `consulta` y el número de cada evaluación. Render debe responder en `https://prufodis-ucen-apirest.onrender.com`.
+
+Esta versión lee y escribe en el backend; no importa los datos que estuvieran en Firebase ni el `localStorage` de versiones anteriores. Si necesitas conservar esos registros, expórtalos y migralos al backend por separado antes de retirar Firebase.

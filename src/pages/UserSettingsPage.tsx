@@ -1,80 +1,35 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import type { User } from 'firebase/auth'
-import { FirebaseError } from 'firebase/app'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type { AppUser, UserProfileChanges } from '../api'
 import DashboardSidebar, { DashboardPageTitle } from '../components/DashboardSidebar'
-import { getUserProfile, updateUserProfile } from '../firebase'
 
 type UserSettingsPageProps = {
-  user: User
+  user: AppUser
+  onUserUpdate: (changes: UserProfileChanges) => Promise<AppUser>
   onLogout: () => void
 }
 
-const getSettingsErrorMessage = (error: unknown) => {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case 'auth/invalid-credential':
-      case 'auth/wrong-password':
-        return 'La contraseña actual no es correcta.'
-      case 'auth/email-already-in-use':
-        return 'Ese correo electrónico ya está asociado a otra cuenta.'
-      case 'auth/invalid-email':
-        return 'Introduce un correo electrónico válido.'
-      case 'auth/requires-recent-login':
-        return 'Vuelve a iniciar sesión e inténtalo de nuevo.'
-      case 'auth/weak-password':
-        return 'La contraseña nueva debe tener al menos 6 caracteres.'
-      case 'firestore/permission-denied':
-        return 'No tienes permiso para guardar los cambios del perfil.'
-      default:
-        return `No se pudieron guardar los cambios. ${error.message}`
-    }
-  }
-
-  return error instanceof Error
+const getSettingsErrorMessage = (error: unknown) =>
+  error instanceof Error
     ? error.message
     : 'No se pudieron guardar los cambios. Inténtalo de nuevo.'
-}
 
-const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
+const UserSettingsPage = ({ user, onUserUpdate, onLogout }: UserSettingsPageProps) => {
   const navigate = useNavigate()
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState(user.email ?? '')
+  const [firstName, setFirstName] = useState(user.firstName)
+  const [lastName, setLastName] = useState(user.lastName)
+  const [email, setEmail] = useState(user.email)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-
-  useEffect(() => {
-    let isActive = true
-
-    void getUserProfile(user)
-      .then((profile) => {
-        if (!isActive) return
-        setFirstName(profile.firstName)
-        setLastName(profile.lastName)
-      })
-      .catch((error: unknown) => {
-        if (!isActive) return
-        setErrorMessage(getSettingsErrorMessage(error))
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false)
-      })
-
-    return () => {
-      isActive = false
-    }
-  }, [user])
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage('')
 
-    if (newPassword && newPassword.length < 6) {
-      setErrorMessage('La contraseña nueva debe tener al menos 6 caracteres.')
+    if (newPassword && newPassword.length < 8) {
+      setErrorMessage('La contraseña nueva debe tener al menos 8 caracteres.')
       return
     }
 
@@ -85,7 +40,7 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
 
     setIsSaving(true)
     try {
-      await updateUserProfile(user, {
+      await onUserUpdate({
         firstName,
         lastName,
         email,
@@ -128,7 +83,7 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
                 autoComplete="given-name"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
               />
             </label>
 
@@ -139,7 +94,7 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
                 autoComplete="family-name"
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
               />
             </label>
 
@@ -151,7 +106,7 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
               />
             </label>
 
@@ -162,7 +117,7 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
                 autoComplete="current-password"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
                 aria-describedby="password-change-help"
               />
             </label>
@@ -172,10 +127,10 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
               <input
                 type="password"
                 autoComplete="new-password"
-                minLength={6}
+                minLength={8}
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
                 aria-describedby="password-change-help"
               />
             </label>
@@ -185,7 +140,7 @@ const UserSettingsPage = ({ user, onLogout }: UserSettingsPageProps) => {
             </p>
 
             <div className="login-form-actions">
-              <button type="submit" disabled={isLoading || isSaving}>
+              <button type="submit" disabled={isSaving}>
                 {isSaving ? 'Guardando…' : 'Guardar cambios'}
               </button>
               <button

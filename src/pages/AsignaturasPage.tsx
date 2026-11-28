@@ -24,7 +24,9 @@ type AsignaturasPageProps = {
   assignments: Assignment[]
   grades: EvaluationGrade[]
   canEdit: boolean
+  canEditRoster: boolean
   onAssignmentSave: (assignment: Assignment) => Promise<void>
+  onAssignmentRosterSave: (assignmentId: string, studentIds: number[]) => Promise<void>
   onAssignmentDelete: (assignmentId: string) => Promise<void>
   onLogout: () => void
 }
@@ -59,7 +61,9 @@ const AsignaturasPage = ({
   assignments,
   grades,
   canEdit,
+  canEditRoster,
   onAssignmentSave,
+  onAssignmentRosterSave,
   onAssignmentDelete,
   onLogout,
 }: AsignaturasPageProps) => {
@@ -96,7 +100,7 @@ const AsignaturasPage = ({
   }
 
   const openEditForm = (assignment: Assignment) => {
-    if (!canEdit) return
+    if (!canEdit && !canEditRoster) return
     const gradeCount = getStoredGradeCount(assignment, grades)
     setForm({
       nombre: assignment.nombre,
@@ -121,7 +125,30 @@ const AsignaturasPage = ({
 
   const saveAssignment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!canEdit || isSaving) return
+    if ((!canEdit && !canEditRoster) || isSaving) return
+
+    if (!canEdit) {
+      if (editingId === null) return
+      if (form.studentIds.length === 0) {
+        setValidationMessage('Selecciona al menos un alumno para la asignatura.')
+        return
+      }
+
+      setIsSaving(true)
+      try {
+        await onAssignmentRosterSave(editingId, form.studentIds)
+        discardChanges()
+      } catch (error: unknown) {
+        console.error('No se pudo actualizar la lista de alumnos en el backend.', error)
+        setValidationMessage(
+          error instanceof Error ? error.message : 'No se pudo actualizar la asignatura.',
+        )
+      } finally {
+        setIsSaving(false)
+      }
+      return
+    }
+
     const nombre = form.nombre.trim()
 
     if (!nombre) {
@@ -195,7 +222,7 @@ const AsignaturasPage = ({
       await onAssignmentSave(assignment)
       discardChanges()
     } catch (error: unknown) {
-      console.error('No se pudo guardar la asignatura en Firebase.', error)
+      console.error('No se pudo guardar la asignatura en el backend.', error)
       setValidationMessage(
         error instanceof Error ? error.message : 'No se pudo guardar la asignatura.',
       )
@@ -221,7 +248,7 @@ const AsignaturasPage = ({
       setConfirmingDeleteId(null)
       if (expandedId === id) setExpandedId(null)
     } catch (error: unknown) {
-      console.error('No se pudo eliminar la asignatura en Firebase.', error)
+      console.error('No se pudo eliminar la asignatura en el backend.', error)
       setValidationMessage(
         error instanceof Error ? error.message : 'No se pudo eliminar la asignatura.',
       )
@@ -239,95 +266,105 @@ const AsignaturasPage = ({
               {isFormOpen
                 ? editingId === null
                   ? 'Agregar asignatura'
-                  : 'Editar asignatura'
+                  : canEditRoster && !canEdit
+                    ? 'Actualizar alumnos de la asignatura'
+                    : 'Editar asignatura'
                 : 'Asignaturas'}
             </h1>
           </DashboardPageTitle>
         </header>
 
-        {canEdit && isFormOpen ? (
+        {(canEdit || canEditRoster) && isFormOpen ? (
           <section className="students-panel" aria-labelledby="assignment-form-title">
             <h2 id="assignment-form-title">
-              {editingId === null ? 'Datos de la asignatura' : 'Actualiza la asignatura'}
+              {canEditRoster && !canEdit
+                ? `Alumnos de ${form.nombre}`
+                : editingId === null
+                  ? 'Datos de la asignatura'
+                  : 'Actualiza la asignatura'}
             </h2>
             <form className="assignment-form" onSubmit={saveAssignment}>
-              <label className="assignment-name-field">
-                Nombre de la asignatura
-                <input
-                  autoComplete="off"
-                  name="nombre"
-                  required
-                  value={form.nombre}
-                  onChange={(event) => {
-                    setForm((currentForm) => ({ ...currentForm, nombre: event.target.value }))
-                    setValidationMessage('')
-                  }}
-                />
-              </label>
+              {canEdit && (
+                <label className="assignment-name-field">
+                  Nombre de la asignatura
+                  <input
+                    autoComplete="off"
+                    name="nombre"
+                    required
+                    value={form.nombre}
+                    onChange={(event) => {
+                      setForm((currentForm) => ({ ...currentForm, nombre: event.target.value }))
+                      setValidationMessage('')
+                    }}
+                  />
+                </label>
+              )}
 
-                      <div className="assignment-grade-settings">
-                        <label className="assignment-name-field">
-                          Cantidad de notas
+              {canEdit && (
+                <div className="assignment-grade-settings">
+                  <label className="assignment-name-field">
+                    Cantidad de notas
+                    <input
+                      type="number"
+                      name="gradeCount"
+                      min="1"
+                      step="1"
+                      required
+                      value={form.gradeCount}
+                      onChange={(event) => {
+                        const nextCount = event.target.value
+                        const parsedCount = Number(nextCount)
+                        setForm((currentForm) => ({
+                          ...currentForm,
+                          gradeCount: nextCount,
+                          gradeWeights:
+                            Number.isSafeInteger(parsedCount) && parsedCount > 0
+                              ? equalWeights(parsedCount)
+                              : currentForm.gradeWeights,
+                        }))
+                        setValidationMessage('')
+                      }}
+                    />
+                  </label>
+                  <fieldset className="assignment-weight-picker">
+                    <legend>Ponderación de cada nota (%)</legend>
+                    <div className="assignment-weight-list">
+                      {form.gradeWeights.map((weight, index) => (
+                        <label className="assignment-weight-field" key={index}>
+                          Nota {index + 1}
                           <input
-                            type="number"
-                            name="gradeCount"
-                            min="1"
-                            step="1"
-                            required
-                            value={form.gradeCount}
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={`Ponderación de la nota ${index + 1}`}
+                            value={weight}
                             onChange={(event) => {
-                              const nextCount = event.target.value
-                              const parsedCount = Number(nextCount)
+                              const nextWeights = [...form.gradeWeights]
+                              nextWeights[index] = event.target.value
                               setForm((currentForm) => ({
                                 ...currentForm,
-                                gradeCount: nextCount,
-                                gradeWeights:
-                                  Number.isSafeInteger(parsedCount) && parsedCount > 0
-                                    ? equalWeights(parsedCount)
-                                    : currentForm.gradeWeights,
+                                gradeWeights: nextWeights,
                               }))
                               setValidationMessage('')
                             }}
                           />
                         </label>
-                        <fieldset className="assignment-weight-picker">
-                          <legend>Ponderación de cada nota (%)</legend>
-                          <div className="assignment-weight-list">
-                            {form.gradeWeights.map((weight, index) => (
-                              <label className="assignment-weight-field" key={index}>
-                                Nota {index + 1}
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  aria-label={`Ponderación de la nota ${index + 1}`}
-                                  value={weight}
-                                  onChange={(event) => {
-                                    const nextWeights = [...form.gradeWeights]
-                                    nextWeights[index] = event.target.value
-                                    setForm((currentForm) => ({
-                                      ...currentForm,
-                                      gradeWeights: nextWeights,
-                                    }))
-                                    setValidationMessage('')
-                                  }}
-                                />
-                              </label>
-                            ))}
-                          </div>
-                          <p className="assignment-weight-hint">
-                            Total:{' '}
-                            {form.gradeWeights
-                              .reduce((total, weight) => {
-                                const parsedWeight = Number(weight.trim().replace(',', '.'))
-                                return Number.isFinite(parsedWeight) ? total + parsedWeight : total
-                              }, 0)
-                              .toLocaleString('es-CL')}
-                            %
-                          </p>
-                        </fieldset>
-                      </div>
+                      ))}
+                    </div>
+                    <p className="assignment-weight-hint">
+                      Total:{' '}
+                      {form.gradeWeights
+                        .reduce((total, weight) => {
+                          const parsedWeight = Number(weight.trim().replace(',', '.'))
+                          return Number.isFinite(parsedWeight) ? total + parsedWeight : total
+                        }, 0)
+                        .toLocaleString('es-CL')}
+                      %
+                    </p>
+                  </fieldset>
+                </div>
+              )}
 
-                      <fieldset className="assignment-student-picker">
+              <fieldset className="assignment-student-picker">
                 <legend>Alumnos de la asignatura</legend>
                 {students.length === 0 ? (
                   <p className="assignment-no-students">
@@ -381,7 +418,13 @@ const AsignaturasPage = ({
             <div className="students-list-heading">
               <div>
                 <h2 id="assignments-list-title">Lista de asignaturas</h2>
-                <p>{canEdit ? 'Administra las asignaturas y los alumnos vinculados.' : 'Consulta las asignaturas y los alumnos vinculados.'}</p>
+                <p>
+                  {canEdit
+                    ? 'Administra las asignaturas y los alumnos vinculados.'
+                    : canEditRoster
+                      ? 'Actualiza los alumnos de las asignaturas que tienes asignadas.'
+                      : 'Consulta las asignaturas y los alumnos vinculados.'}
+                </p>
               </div>
               {canEdit && (
                 <button className="primary-button" onClick={openNewForm}>
@@ -448,8 +491,8 @@ const AsignaturasPage = ({
                           </span>
                           <span>{assignment.nombre}</span>
                         </button>
-                        {canEdit && <div className="student-actions">
-                          {confirmingDeleteId === assignment.id ? (
+                        {(canEdit || canEditRoster) && <div className="student-actions">
+                          {canEdit && confirmingDeleteId === assignment.id ? (
                             <div
                               className="student-delete-confirmation"
                               role="group"
@@ -473,18 +516,20 @@ const AsignaturasPage = ({
                             <>
                               <button
                                 className="student-action-button"
-                                aria-label={`Editar ${assignment.nombre}`}
+                                aria-label={`${canEdit ? 'Editar' : 'Actualizar alumnos de'} ${assignment.nombre}`}
                                 onClick={() => openEditForm(assignment)}
                               >
-                                <span>Editar</span>
+                                <span>{canEdit ? 'Editar' : 'Alumnos'}</span>
                               </button>
-                              <button
-                                className="student-action-button student-delete-button"
-                                aria-label={`Eliminar ${assignment.nombre}`}
-                                onClick={() => setConfirmingDeleteId(assignment.id)}
-                              >
-                                <span>Eliminar</span>
-                              </button>
+                              {canEdit && (
+                                <button
+                                  className="student-action-button student-delete-button"
+                                  aria-label={`Eliminar ${assignment.nombre}`}
+                                  onClick={() => setConfirmingDeleteId(assignment.id)}
+                                >
+                                  <span>Eliminar</span>
+                                </button>
+                              )}
                             </>
                           )}
                         </div>}

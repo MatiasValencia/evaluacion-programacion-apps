@@ -151,7 +151,7 @@ const EvaluacionesPage = ({
       await onGradesSave(baseGrades, draftGrades)
       discardChanges()
     } catch (error: unknown) {
-      console.error('No se pudieron guardar las evaluaciones en Firebase.', error)
+      console.error('No se pudieron guardar las evaluaciones en el backend.', error)
       setValidationMessage(
         error instanceof Error ? error.message : 'No se pudieron guardar las evaluaciones.',
       )

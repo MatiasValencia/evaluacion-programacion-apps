@@ -1,220 +1,211 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 import './App.css'
+import { AuthContext } from './auth-context'
+import {
+  ApiError,
+  getCurrentUser,
+  login,
+  logout,
+  registerAccount,
+  updateUserProfile,
+  type AppUser,
+} from './api'
 import LandingPage from './pages/LandingPage'
 import MenuPage from './pages/MenuPage'
-import AlumnosPage, { type Student } from './pages/AlumnosPage'
-import AsignaturasPage, { type Assignment } from './pages/AsignaturasPage'
-import AsistenciaPage, { type AttendanceRecord } from './pages/AsistenciaPage'
-import EvaluacionesPage, { type EvaluationGrade } from './pages/EvaluacionesPage'
-import HabilidadesPedagogicasPage, {
-  type PedagogicalSkill,
-} from './pages/HabilidadesPedagogicasPage'
+import AlumnosPage from './pages/AlumnosPage'
+import AsignaturasPage from './pages/AsignaturasPage'
+import AsistenciaPage from './pages/AsistenciaPage'
+import EvaluacionesPage from './pages/EvaluacionesPage'
+import HabilidadesPedagogicasPage from './pages/HabilidadesPedagogicasPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
 import UserSettingsPage from './pages/UserSettingsPage'
 import {
-  authenticateUser,
-  firebaseAuth,
-  firebaseDb,
-  getUserRole,
-  type UserRole,
-} from './firebase'
-import {
-  deleteRecord,
-  deleteStudentAndUnlinkFromAssignments,
-  initializeFirestoreData,
+  deleteAssignment,
+  deleteAttendance,
+  deletePedagogicalSkill,
+  deleteStudent,
+  loadAppData,
+  saveAssignment,
+  saveAssignmentRoster,
+  saveAttendance,
   saveEvaluationGrades,
-  saveRecord,
-  subscribeToCollection,
-} from './firebase-store'
+  savePedagogicalSkill,
+  saveStudent,
+  type AppData,
+} from './api-store'
 
 function App() {
-  const [students, setStudents] = useState<Student[]>([])
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
-  const [evaluationGrades, setEvaluationGrades] = useState<EvaluationGrade[]>([])
-  const [pedagogicalSkills, setPedagogicalSkills] = useState<PedagogicalSkill[]>([])
-  const [authenticatedUser, setAuthenticatedUser] = useState<User | null>(null)
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
-  const [isAuthLoading, setIsAuthLoading] = useState(firebaseAuth !== null)
-  const [loadedUserUid, setLoadedUserUid] = useState<string | null>(null)
+  const [students, setStudents] = useState<AppData['students']>([])
+  const [assignments, setAssignments] = useState<AppData['assignments']>([])
+  const [attendanceRecords, setAttendanceRecords] = useState<AppData['attendanceRecords']>([])
+  const [evaluationGrades, setEvaluationGrades] = useState<AppData['evaluationGrades']>([])
+  const [pedagogicalSkills, setPedagogicalSkills] = useState<AppData['pedagogicalSkills']>([])
+  const [authenticatedUser, setAuthenticatedUser] = useState<AppUser | null>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authRetry, setAuthRetry] = useState(0)
+  const [loadedUserId, setLoadedUserId] = useState<number | null>(null)
   const [dataError, setDataError] = useState<string | null>(null)
   const [dataRetry, setDataRetry] = useState(0)
 
   useEffect(() => {
-    if (firebaseAuth === null) return
+    let isActive = true
 
-    let authStateRequest = 0
-
-    return onAuthStateChanged(
-      firebaseAuth,
-      async (user) => {
-        const requestId = ++authStateRequest
+    void getCurrentUser()
+      .then((user) => {
+        if (!isActive) return
         setAuthenticatedUser(user)
-        setUserRole(null)
-        setLoadedUserUid(null)
-        setDataError(null)
-
-        if (user === null) {
-          setIsAuthLoading(false)
+      })
+      .catch((error: unknown) => {
+        if (!isActive) return
+        if (error instanceof ApiError && error.status === 401) {
+          setAuthenticatedUser(null)
           return
         }
+        setAuthError(
+          error instanceof Error ? error.message : 'No se pudo comprobar la sesión.',
+        )
+      })
+      .finally(() => {
+        if (isActive) setIsAuthLoading(false)
+      })
 
-        setIsAuthLoading(true)
-
-        try {
-          const role = await getUserRole(user.uid)
-          if (requestId !== authStateRequest) return
-          setUserRole(role)
-        } catch (error) {
-          if (requestId !== authStateRequest) return
-          console.error('No se pudo resolver el rol del usuario.', error)
-          setUserRole(null)
-        } finally {
-          if (requestId === authStateRequest) {
-            setIsAuthLoading(false)
-          }
-        }
-      },
-      (error) => {
-        console.error('No se pudo restaurar la sesión de Firebase.', error)
-        setAuthenticatedUser(null)
-        setUserRole(null)
-        setIsAuthLoading(false)
-      },
-    )
-  }, [])
+    return () => {
+      isActive = false
+    }
+  }, [authRetry])
 
   const handleLogin = async (email: string, password: string) => {
-    const user = await authenticateUser(email, password)
-    const role = await getUserRole(user.uid)
+    const user = await login(email, password)
     setAuthenticatedUser(user)
-    setUserRole(role)
+    setAuthError(null)
+  }
+
+  const handleRegister = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) => {
+    const user = await registerAccount(email, password, firstName, lastName)
+    setAuthenticatedUser(user)
+    setAuthError(null)
   }
 
   const handleLogout = () => {
-    if (firebaseAuth === null) return
-
-    void signOut(firebaseAuth)
+    void logout()
       .then(() => {
-        setUserRole(null)
+        setAuthenticatedUser(null)
+        setLoadedUserId(null)
+        setDataError(null)
       })
       .catch((error: unknown) => {
-        console.error('No se pudo cerrar la sesión de Firebase.', error)
+        console.error('No se pudo cerrar la sesión del backend.', error)
         window.alert('No se pudo cerrar la sesión. Inténtalo de nuevo.')
       })
   }
 
-  const isAdmin = userRole === 'admin'
-  const isReadOnly = userRole === 'readOnly'
-  const isAuthorized = isAdmin || isReadOnly
-  const authorizedUid = isAuthorized ? authenticatedUser?.uid ?? null : null
+  const userRole = authenticatedUser?.role ?? null
+  const isAdmin = userRole === 'administrador'
+  const isProfessor = userRole === 'profesor'
+  const isPsychologist = userRole === 'psicologo'
+  const isAuthorized = authenticatedUser !== null
+  const authorizedUserId = isAuthorized ? authenticatedUser.id : null
 
   useEffect(() => {
-    if (authorizedUid === null || firebaseDb === null) return
-
+    if (authorizedUserId === null) return
     let isActive = true
-    let hasStartedInitialization = false
-    const receivedCollections = new Set<string>()
 
-    const handleDataError = (error: Error) => {
-      console.error('No se pudieron sincronizar los datos con Firestore.', error)
-      if (!isActive) return
-      setDataError(error.message)
-    }
-
-    const initializeWhenReady = () => {
-      if (receivedCollections.size !== 5 || hasStartedInitialization) return
-      hasStartedInitialization = true
-
-      if (!isAdmin) {
-        setLoadedUserUid(authorizedUid)
-        return
-      }
-
-      void initializeFirestoreData()
-        .then((data) => {
-          if (!isActive) return
-          setStudents(data.students)
-          setAssignments(data.assignments)
-          setAttendanceRecords(data.attendanceRecords)
-          setEvaluationGrades(data.evaluationGrades)
-          setPedagogicalSkills(data.pedagogicalSkills)
-          setLoadedUserUid(authorizedUid)
-        })
-        .catch((error: unknown) => {
-          handleDataError(
-            error instanceof Error ? error : new Error('Error inesperado al cargar los datos.'),
-          )
-        })
-    }
-
-    const subscriptions = [
-      subscribeToCollection(
-        'students',
-        (records) => {
-          if (!isActive) return
-          setStudents(records)
-          receivedCollections.add('students')
-          initializeWhenReady()
-        },
-        handleDataError,
-      ),
-      subscribeToCollection(
-        'assignments',
-        (records) => {
-          if (!isActive) return
-          setAssignments(records)
-          receivedCollections.add('assignments')
-          initializeWhenReady()
-        },
-        handleDataError,
-      ),
-      subscribeToCollection(
-        'attendanceRecords',
-        (records) => {
-          if (!isActive) return
-          setAttendanceRecords(records)
-          receivedCollections.add('attendanceRecords')
-          initializeWhenReady()
-        },
-        handleDataError,
-      ),
-      subscribeToCollection(
-        'evaluationGrades',
-        (records) => {
-          if (!isActive) return
-          setEvaluationGrades(records)
-          receivedCollections.add('evaluationGrades')
-          initializeWhenReady()
-        },
-        handleDataError,
-      ),
-      subscribeToCollection(
-        'pedagogicalSkills',
-        (records) => {
-          if (!isActive) return
-          setPedagogicalSkills(records)
-          receivedCollections.add('pedagogicalSkills')
-          initializeWhenReady()
-        },
-        handleDataError,
-      ),
-    ]
+    void loadAppData()
+      .then((data) => {
+        if (!isActive) return
+        setStudents(data.students)
+        setAssignments(data.assignments)
+        setAttendanceRecords(data.attendanceRecords)
+        setEvaluationGrades(data.evaluationGrades)
+        setPedagogicalSkills(data.pedagogicalSkills)
+        setLoadedUserId(authorizedUserId)
+      })
+      .catch((error: unknown) => {
+        if (!isActive) return
+        console.error('No se pudieron cargar los datos del backend.', error)
+        setDataError(
+          error instanceof Error ? error.message : 'Error inesperado al cargar los datos.',
+        )
+      })
 
     return () => {
       isActive = false
-      subscriptions.forEach((unsubscribe) => unsubscribe())
     }
-  }, [authorizedUid, isAdmin, dataRetry])
+  }, [authorizedUserId, dataRetry])
 
-  const isDataLoading = isAuthorized && loadedUserUid !== authorizedUid && dataError === null
+  const refreshAppData = async () => {
+    const data = await loadAppData()
+    setStudents(data.students)
+    setAssignments(data.assignments)
+    setAttendanceRecords(data.attendanceRecords)
+    setEvaluationGrades(data.evaluationGrades)
+    setPedagogicalSkills(data.pedagogicalSkills)
+    setLoadedUserId(authorizedUserId)
+  }
+
+  const saveAndRefresh = async (save: () => Promise<unknown>) => {
+    await save()
+    await refreshAppData()
+  }
+
+  const handleStudentSave = (student: Parameters<typeof saveStudent>[0]) =>
+    saveAndRefresh(() => saveStudent(student))
+  const handleStudentDelete = (studentId: number) =>
+    saveAndRefresh(() => deleteStudent(studentId))
+  const handleSkillSave = (skill: Parameters<typeof savePedagogicalSkill>[0]) =>
+    saveAndRefresh(() => savePedagogicalSkill(skill))
+  const handleSkillDelete = (skillId: string) =>
+    saveAndRefresh(() => deletePedagogicalSkill(skillId))
+  const handleAssignmentSave = (assignment: Parameters<typeof saveAssignment>[0]) =>
+    saveAndRefresh(() => saveAssignment(assignment))
+  const handleAssignmentRosterSave = (assignmentId: string, studentIds: number[]) =>
+    saveAndRefresh(() => saveAssignmentRoster(assignmentId, studentIds))
+  const handleAssignmentDelete = (assignmentId: string) =>
+    saveAndRefresh(() => deleteAssignment(assignmentId))
+  const handleAttendanceSave = (record: Parameters<typeof saveAttendance>[0]) =>
+    saveAndRefresh(() => saveAttendance(record))
+  const handleAttendanceDelete = (recordId: string) =>
+    saveAndRefresh(() => deleteAttendance(recordId))
+  const handleUserProfileUpdate = async (
+    changes: Parameters<typeof updateUserProfile>[0],
+  ) => {
+    const user = await updateUserProfile(changes)
+    setAuthenticatedUser(user)
+    return user
+  }
+
+  const isDataLoading =
+    isAuthorized && loadedUserId !== authorizedUserId && dataError === null
 
   if (isAuthLoading) {
     return (
       <main className="auth-loading" role="status">
         Comprobando la sesión…
+      </main>
+    )
+  }
+
+  if (authError !== null) {
+    return (
+      <main className="auth-loading" role="alert">
+        <p>No se pudo conectar con el backend: {authError}</p>
+        <button
+          className="secondary-button"
+          onClick={() => {
+            setAuthError(null)
+            setIsAuthLoading(true)
+            setAuthRetry((retry) => retry + 1)
+          }}
+        >
+          Reintentar
+        </button>
       </main>
     )
   }
@@ -230,12 +221,12 @@ function App() {
   if (isAuthorized && dataError !== null) {
     return (
       <main className="auth-loading" role="alert">
-        <p>No se pudieron cargar los datos de Firebase: {dataError}</p>
+        <p>No se pudieron cargar los datos del backend: {dataError}</p>
         <button
           className="secondary-button"
           onClick={() => {
             setDataError(null)
-            setLoadedUserUid(null)
+            setLoadedUserId(null)
             setDataRetry((retry) => retry + 1)
           }}
         >
@@ -249,8 +240,9 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
+    <AuthContext.Provider value={authenticatedUser}>
+      <BrowserRouter>
+        <Routes>
         <Route
           path="/"
           element={
@@ -259,7 +251,7 @@ function App() {
             ) : authenticatedUser ? (
               <Navigate to="/acceso-denegado" replace />
             ) : (
-              <LandingPage onLogin={handleLogin} />
+              <LandingPage onLogin={handleLogin} onRegister={handleRegister} />
             )
           }
         />
@@ -303,10 +295,11 @@ function App() {
               <AlumnosPage
                 students={students}
                 canEdit={isAdmin}
+                canEditSkills={isPsychologist}
                 pedagogicalSkills={pedagogicalSkills}
-                onSkillDelete={(skillId) => deleteRecord('pedagogicalSkills', skillId)}
-                onStudentSave={(student) => saveRecord('students', student)}
-                onStudentDelete={deleteStudentAndUnlinkFromAssignments}
+                onSkillDelete={handleSkillDelete}
+                onStudentSave={handleStudentSave}
+                onStudentDelete={handleStudentDelete}
                 onLogout={handleLogout}
               />
             }
@@ -317,10 +310,11 @@ function App() {
               <AlumnosPage
                 students={students}
                 canEdit={isAdmin}
+                canEditSkills={isPsychologist}
                 pedagogicalSkills={pedagogicalSkills}
-                onSkillDelete={(skillId) => deleteRecord('pedagogicalSkills', skillId)}
-                onStudentSave={(student) => saveRecord('students', student)}
-                onStudentDelete={deleteStudentAndUnlinkFromAssignments}
+                onSkillDelete={handleSkillDelete}
+                onStudentSave={handleStudentSave}
+                onStudentDelete={handleStudentDelete}
                 onLogout={handleLogout}
               />
             }
@@ -331,8 +325,8 @@ function App() {
               <HabilidadesPedagogicasPage
                 students={students}
                 skills={pedagogicalSkills}
-                canEdit={isAdmin}
-                onSkillSave={(skill) => saveRecord('pedagogicalSkills', skill)}
+                canEdit={isPsychologist}
+                onSkillSave={handleSkillSave}
                 onLogout={handleLogout}
               />
             }
@@ -343,8 +337,8 @@ function App() {
               <HabilidadesPedagogicasPage
                 students={students}
                 skills={pedagogicalSkills}
-                canEdit={isAdmin}
-                onSkillSave={(skill) => saveRecord('pedagogicalSkills', skill)}
+                canEdit={isPsychologist}
+                onSkillSave={handleSkillSave}
                 onLogout={handleLogout}
               />
             }
@@ -357,8 +351,10 @@ function App() {
                 assignments={assignments}
                 grades={evaluationGrades}
                 canEdit={isAdmin}
-                onAssignmentSave={(assignment) => saveRecord('assignments', assignment)}
-                onAssignmentDelete={(id) => deleteRecord('assignments', id)}
+                canEditRoster={isProfessor}
+                onAssignmentSave={handleAssignmentSave}
+                onAssignmentRosterSave={handleAssignmentRosterSave}
+                onAssignmentDelete={handleAssignmentDelete}
                 onLogout={handleLogout}
               />
             }
@@ -370,9 +366,9 @@ function App() {
                 students={students}
                 assignments={assignments}
                 records={attendanceRecords}
-                canEdit={isAdmin}
-                onRecordSave={(record) => saveRecord('attendanceRecords', record)}
-                onRecordDelete={(id) => deleteRecord('attendanceRecords', id)}
+                canEdit={isProfessor}
+                onRecordSave={handleAttendanceSave}
+                onRecordDelete={handleAttendanceDelete}
                 onLogout={handleLogout}
               />
             }
@@ -384,8 +380,10 @@ function App() {
                 students={students}
                 assignments={assignments}
                 grades={evaluationGrades}
-                canEdit={isAdmin}
-                onGradesSave={saveEvaluationGrades}
+                canEdit={isProfessor}
+                onGradesSave={(previous, next) =>
+                  saveAndRefresh(() => saveEvaluationGrades(previous, next))
+                }
                 onLogout={handleLogout}
               />
             }
@@ -394,7 +392,12 @@ function App() {
             path="configurar-usuario"
             element={
               authenticatedUser ? (
-                <UserSettingsPage user={authenticatedUser} onLogout={handleLogout} />
+                <UserSettingsPage
+                  key={authenticatedUser.id}
+                  user={authenticatedUser}
+                  onUserUpdate={handleUserProfileUpdate}
+                  onLogout={handleLogout}
+                />
               ) : (
                 <Navigate to="/" replace />
               )
@@ -402,8 +405,9 @@ function App() {
           />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </AuthContext.Provider>
   )
 }
 

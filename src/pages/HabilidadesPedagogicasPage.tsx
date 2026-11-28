@@ -67,7 +67,7 @@ const SkillForm = ({ student, skill, onSkillSave, onLogout }: SkillFormProps) =>
       })
       navigate(profilePath)
     } catch (error: unknown) {
-      console.error('No se pudo guardar la competencia en Firebase.', error)
+      console.error('No se pudo guardar la competencia en el backend.', error)
       setSaveError(
         error instanceof Error ? error.message : 'No se pudo guardar la competencia.',
       )
